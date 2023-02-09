@@ -82,6 +82,11 @@ type EmbeddedStructB struct {
 type WithEmbeddedStructs struct {
 	EmbeddedStructA
 	EmbeddedStructB
+	C string
+}
+
+type WithNameStructTags struct {
+	Name string `json:"name"`
 }
 
 func TestSchema(t *testing.T) {
@@ -131,6 +136,14 @@ func TestSchema(t *testing.T) {
 				api.Handle("/test", testHandler).
 					WithRequestModel(http.MethodPost, rest.ModelOf[WithEmbeddedStructs]()).
 					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[WithEmbeddedStructs]())
+			},
+		},
+		{
+			name: "with-name-struct-tags.yaml",
+			setup: func(api *rest.API) {
+				api.Handle("/test", testHandler).
+					WithRequestModel(http.MethodPost, rest.ModelOf[WithNameStructTags]()).
+					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[WithNameStructTags]())
 			},
 		},
 	}
