@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"fmt"
 	"net/http"
 	"reflect"
 
@@ -47,7 +46,6 @@ type RouteModel struct {
 // Get adds a GET request handler to the route.
 func (r *RouteModel) Get(handler Handler) *RouteModel {
 	r.MethodToHandlerMap[http.MethodGet] = RouteHandler{
-		name:    fmt.Sprintf("GET %v", r.Path),
 		Handler: handler,
 	}
 	return r
@@ -56,28 +54,19 @@ func (r *RouteModel) Get(handler Handler) *RouteModel {
 // Post adds a POST request handler to the route.
 func (r *RouteModel) Post(handler Handler) *RouteModel {
 	r.MethodToHandlerMap[http.MethodPost] = RouteHandler{
-		name:    fmt.Sprintf("POST %v", r.Path),
 		Handler: handler,
 	}
 	return r
 }
 
+// RouteHandler contains information about each route.
 type RouteHandler struct {
-	name    string
 	Handler Handler
-}
-
-func (rh RouteHandler) Name() string {
-	return rh.name
 }
 
 type Handler interface {
 	http.Handler
 	Models() (request Model, responses map[int]Model)
-}
-
-type Named interface {
-	Name() string
 }
 
 func Request[T any]() Model {

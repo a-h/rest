@@ -2,6 +2,12 @@
 
 ## Tasks
 
+### test
+
+```
+go test ./...
+```
+
 ### run-example
 
 Dir: ./example

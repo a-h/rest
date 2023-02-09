@@ -12,19 +12,25 @@ import (
 
 var allMethods = []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
 
-func createOpenAPI(api APIModel) (spec *openapi3.T, err error) {
-	spec = &openapi3.T{
+func newSpec(name string) *openapi3.T {
+	return &openapi3.T{
 		OpenAPI: "3.0.0",
 		Info: &openapi3.Info{
-			Title:   api.Name,
-			Version: "0.0.0",
+			Title:      name,
+			Version:    "0.0.0",
+			Extensions: map[string]interface{}{},
 		},
 		Components: &openapi3.Components{
-			Schemas: make(openapi3.Schemas),
+			Schemas:    make(openapi3.Schemas),
+			Extensions: map[string]interface{}{},
 		},
-		Paths: openapi3.Paths{},
+		Paths:      openapi3.Paths{},
+		Extensions: map[string]interface{}{},
 	}
+}
 
+func createOpenAPI(api APIModel) (spec *openapi3.T, err error) {
+	spec = newSpec(api.Name)
 	// Add all the routes.
 	for _, r := range api.Routes {
 		path := &openapi3.PathItem{}
@@ -109,6 +115,7 @@ func createOpenAPI(api APIModel) (spec *openapi3.T, err error) {
 	if err = spec.Validate(context.Background()); err != nil {
 		return spec, fmt.Errorf("failed validation: %w", err)
 	}
+
 	return spec, err
 }
 
