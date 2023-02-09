@@ -100,8 +100,7 @@ func createOpenAPI(api *API) (spec *openapi3.T, err error) {
 			case http.MethodTrace:
 				path.Trace = operation
 			default:
-				//TODO: Consider error instead?
-				panic("uknown verb")
+				return spec, fmt.Errorf("unknown HTTP method: %v", method)
 			}
 		}
 		spec.Paths[r.Path] = path
