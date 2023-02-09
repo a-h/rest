@@ -1,8 +1,13 @@
 package rest
 
 import (
+	"embed"
+	"encoding/json"
 	"net/http"
 	"reflect"
+	"sync"
+
+	_ "embed"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
@@ -21,10 +26,53 @@ type API struct {
 	Name string
 	// Routes of the API.
 	Routes []*Route
+
+	// handler is a HTTP handler that serves up the routes.
+	handler    http.Handler
+	configured bool
+	m          sync.Mutex
+}
+
+//go:embed swagger-ui/*
+var swaggerUI embed.FS
+
+func (api *API) configureHandler() {
+	defer api.m.Unlock()
+	api.m.Lock()
+
+	// Create JSON specification to serve.
+	spec, err := api.Spec()
+	if err != nil {
+		panic("failed to create specification: " + err.Error())
+	}
+	specBytes, err := json.MarshalIndent(spec, "", " ")
+	if err != nil {
+		panic("failed to marshal specification: " + err.Error())
+	}
+
+	m := http.NewServeMux()
+	for _, r := range api.Routes {
+		m.Handle(r.Path, r.Handler)
+	}
+	m.HandleFunc("/swagger.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		w.Write(specBytes)
+	})
+	m.Handle("/swagger-ui/", http.FileServer(http.FS(swaggerUI)))
+	api.handler = m
+
+	api.configured = true
+}
+
+func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !api.configured {
+		api.configureHandler()
+	}
+	api.handler.ServeHTTP(w, r)
 }
 
 // Spec creates an OpenAPI 3.0 specification document for the API.
-func (api API) Spec() (spec *openapi3.T, err error) {
+func (api *API) Spec() (spec *openapi3.T, err error) {
 	return createOpenAPI(api)
 }
 

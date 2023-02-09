@@ -29,7 +29,7 @@ func newSpec(name string) *openapi3.T {
 	}
 }
 
-func createOpenAPI(api API) (spec *openapi3.T, err error) {
+func createOpenAPI(api *API) (spec *openapi3.T, err error) {
 	spec = newSpec(api.Name)
 	// Add all the routes.
 	for _, r := range api.Routes {

@@ -1,9 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/a-h/rest"
@@ -21,11 +18,5 @@ func main() {
 		WithRequestModel(http.MethodPost, rest.ModelOf[post.TopicPostRequest]()).
 		WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[post.TopicPostResponse]())
 
-	spec, err := api.Spec()
-	if err != nil {
-		log.Fatalf("failed to generate spec: %v", err)
-	}
-	v, _ := json.MarshalIndent(spec, "", " ")
-
-	fmt.Print(string(v))
+	http.ListenAndServe(":8080", api)
 }
