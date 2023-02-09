@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	_ "embed"
 
@@ -89,6 +90,11 @@ type WithNameStructTags struct {
 	Name string `json:"name"`
 }
 
+type KnownTypes struct {
+	Time    time.Time  `json:"time"`
+	TimePtr *time.Time `json:"timePtr"`
+}
+
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -148,6 +154,13 @@ func TestSchema(t *testing.T) {
 					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[WithNameStructTags]())
 			},
 		},
+		{
+			name: "known-types.yaml",
+			setup: func(api *rest.API) {
+				api.Handle("/test", testHandler).
+					WithResponseModel(http.MethodGet, http.StatusOK, rest.ModelOf[KnownTypes]())
+			},
+		},
 	}
 
 	ignoreUnexportedFieldsIn := []any{
@@ -171,6 +184,7 @@ func TestSchema(t *testing.T) {
 
 		// Create the API.
 		api := rest.NewAPI(test.name)
+		api.StripPkgPaths = []string{"github.com/a-h/rest"}
 		// Configure it.
 		test.setup(api)
 		// Create the actual spec.

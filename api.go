@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"reflect"
 	"sync"
+	"time"
 
 	_ "embed"
 
@@ -15,8 +16,14 @@ import (
 // NewAPI creates a new APIModel.
 func NewAPI(name string) *API {
 	return &API{
-		Name: name,
+		Name:       name,
+		KnownTypes: defaultKnownTypes,
 	}
+}
+
+var defaultKnownTypes = map[reflect.Type]*openapi3.Schema{
+	reflect.TypeOf(time.Time{}):  openapi3.NewDateTimeSchema(),
+	reflect.TypeOf(&time.Time{}): openapi3.NewDateTimeSchema().WithNullable(),
 }
 
 // API is a model of a REST API's routes, along with their
@@ -26,6 +33,20 @@ type API struct {
 	Name string
 	// Routes of the API.
 	Routes []*Route
+	// StripPkgPaths to strip from the type names in the OpenAPI output to avoid
+	// leaking internal implementation details such as internal repo names.
+	//
+	// This increases the risk of type clashes in the OpenAPI output, i.e. two types
+	// in different namespaces that are set to be stripped, and have the same type Name
+	// could clash.
+	//
+	// Example values could be "github.com/a-h/rest".
+	StripPkgPaths []string
+
+	// KnownTypes are added to the OpenAPI specification output.
+	// The default implementation:
+	//   Maps time.Time to a string.
+	KnownTypes map[reflect.Type]*openapi3.Schema
 
 	// configureSpec is executed after the spec is auto-generated, and can be used to
 	// adjust the OpenAPI specification.
@@ -81,7 +102,7 @@ func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Spec creates an OpenAPI 3.0 specification document for the API.
 func (api *API) Spec() (spec *openapi3.T, err error) {
-	spec, err = createOpenAPI(api)
+	spec, err = api.createOpenAPI()
 	if err != nil {
 		return
 	}

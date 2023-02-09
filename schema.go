@@ -29,7 +29,7 @@ func newSpec(name string) *openapi3.T {
 	}
 }
 
-func createOpenAPI(api *API) (spec *openapi3.T, err error) {
+func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 	spec = newSpec(api.Name)
 	// Add all the routes.
 	for _, r := range api.Routes {
@@ -41,7 +41,7 @@ func createOpenAPI(api *API) (spec *openapi3.T, err error) {
 
 				// Handle request types.
 				if models.Request.Type != nil {
-					ref, err := getSchema(spec.Components.Schemas, models.Request.Type, getSchemaOpts{})
+					ref, err := api.getSchema(spec.Components.Schemas, models.Request.Type, getSchemaOpts{})
 					if err != nil {
 						return spec, err
 					}
@@ -59,7 +59,7 @@ func createOpenAPI(api *API) (spec *openapi3.T, err error) {
 
 				// Handle response types.
 				for status, model := range models.Responses {
-					ref, err := getSchema(spec.Components.Schemas, model.Type, getSchemaOpts{})
+					ref, err := api.getSchema(spec.Components.Schemas, model.Type, getSchemaOpts{})
 					if err != nil {
 						return spec, err
 					}
@@ -130,16 +130,34 @@ type getSchemaOpts struct {
 	IsEmbedded bool
 }
 
-func getSchema(schemas openapi3.Schemas, t reflect.Type, opts getSchemaOpts) (s *openapi3.SchemaRef, err error) {
-	if _, hasExisting := schemas[t.Name()]; hasExisting {
-		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", t.Name()), nil), nil
+func (api *API) getSchema(schemas openapi3.Schemas, t reflect.Type, opts getSchemaOpts) (s *openapi3.SchemaRef, err error) {
+	// Normalize the name.
+	pkgPath, typeName := t.PkgPath(), t.Name()
+	if t.Kind() == reflect.Pointer {
+		pkgPath = t.Elem().PkgPath()
+		typeName = t.Elem().Name() + "Ptr"
+	}
+	schemaName := api.normalizeTypeName(pkgPath, typeName)
+	if typeName == "" {
+		schemaName = fmt.Sprintf("AnonymousType%d", len(schemas))
+	}
+	// If we've already got the schema, return it.
+	if _, hasExisting := schemas[schemaName]; hasExisting {
+		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", schemaName), nil), nil
+	}
+	// It's known, but not int the schemaset yet.
+	if known, isKnown := api.KnownTypes[t]; isKnown {
+		// Add it.
+		schemas[schemaName] = openapi3.NewSchemaRef("", known)
+		// Return a reference to it.
+		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", schemaName), nil), nil
 	}
 
 	switch t.Kind() {
 	case reflect.Slice, reflect.Array:
 		arraySchema := openapi3.NewArraySchema()
 		arraySchema.Nullable = true // Arrays are always nilable in Go.
-		arraySchema.Items, err = getSchema(schemas, t.Elem(), getSchemaOpts{})
+		arraySchema.Items, err = api.getSchema(schemas, t.Elem(), getSchemaOpts{})
 		if err != nil {
 			return
 		}
@@ -165,7 +183,7 @@ func getSchema(schemas openapi3.Schemas, t reflect.Type, opts getSchemaOpts) (s 
 			Nullable: opts.IsPointer,
 		}), nil
 	case reflect.Pointer:
-		ref, err := getSchema(schemas, t.Elem(), getSchemaOpts{IsPointer: true})
+		ref, err := api.getSchema(schemas, t.Elem(), getSchemaOpts{IsPointer: true})
 		if err != nil {
 			return nil, fmt.Errorf("error getting schema of pointer to %v: %w", t.Elem(), err)
 		}
@@ -186,7 +204,7 @@ func getSchema(schemas openapi3.Schemas, t reflect.Type, opts getSchemaOpts) (s 
 			if f.Anonymous {
 				// Add all the embedded fields to this type.
 				// Create an empty
-				embedded, err := getSchema(schemas, f.Type, getSchemaOpts{IsEmbedded: true})
+				embedded, err := api.getSchema(schemas, f.Type, getSchemaOpts{IsEmbedded: true})
 				if err != nil {
 					return nil, fmt.Errorf("error getting schema of embedded type: %w", err)
 				}
@@ -200,15 +218,11 @@ func getSchema(schemas openapi3.Schemas, t reflect.Type, opts getSchemaOpts) (s 
 				}
 				continue
 			}
-			schema.Properties[name], err = getSchema(schemas, f.Type, getSchemaOpts{})
+			schema.Properties[name], err = api.getSchema(schemas, f.Type, getSchemaOpts{})
 		}
 		value := openapi3.NewSchemaRef("", schema)
 		if opts.IsEmbedded {
 			return value, nil
-		}
-		schemaName := t.Name()
-		if schemaName == "" {
-			schemaName = fmt.Sprintf("AnonymousType%d", len(schemas))
 		}
 		schemas[schemaName] = value
 
@@ -216,5 +230,21 @@ func getSchema(schemas openapi3.Schemas, t reflect.Type, opts getSchemaOpts) (s 
 		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", schemaName), nil), nil
 	}
 
-	return nil, fmt.Errorf("unsupported type: %v", t.Name())
+	return nil, fmt.Errorf("unsupported type: %v/%v", t.PkgPath(), t.Name())
+}
+
+var normalizer = strings.NewReplacer("/", "_", ".", "_")
+
+func (api *API) normalizeTypeName(pkgPath, name string) string {
+	var omitPackage bool
+	for _, pkg := range api.StripPkgPaths {
+		if strings.HasPrefix(pkgPath, pkg) {
+			omitPackage = true
+			break
+		}
+	}
+	if omitPackage {
+		return normalizer.Replace(name)
+	}
+	return normalizer.Replace(pkgPath + "/" + name)
 }
