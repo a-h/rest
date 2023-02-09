@@ -194,10 +194,14 @@ func getSchema(schemas openapi3.Schemas, t reflect.Type, isNullable bool) (s *op
 			}
 		}
 		ref := openapi3.NewSchemaRef("", schema)
-		schemas[t.Name()] = ref
+		schemaName := t.Name()
+		if schemaName == "" {
+			schemaName = fmt.Sprintf("AnonymousType%d", len(schemas))
+		}
+		schemas[schemaName] = ref
 
 		// Return a reference.
-		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", t.Name()), nil), nil
+		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", schemaName), nil), nil
 	}
 
 	return nil, fmt.Errorf("unsupported type: %v", t.Name())

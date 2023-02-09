@@ -105,6 +105,14 @@ func TestSchema(t *testing.T) {
 					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[AllBasicDataTypesPointers]())
 			},
 		},
+		{
+			name: "anonymous-type.yaml",
+			setup: func(api *rest.API) {
+				api.Handle("/test", testHandler).
+					WithRequestModel(http.MethodPost, rest.ModelOf[struct{ A string }]()).
+					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[struct{ B string }]())
+			},
+		},
 	}
 
 	ignoreUnexportedFieldsIn := []any{
@@ -133,7 +141,7 @@ func TestSchema(t *testing.T) {
 		// Create the actual spec.
 		actual, err := api.Spec()
 		if err != nil {
-			t.Fatalf("failed to generate spec: %v", err)
+			t.Errorf("failed to generate spec: %v", err)
 		}
 
 		// Compare.
