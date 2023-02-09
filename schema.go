@@ -1,12 +1,120 @@
 package rest
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
+
+var allMethods = []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
+
+func createOpenAPI(api APIModel) (spec *openapi3.T, err error) {
+	spec = &openapi3.T{
+		OpenAPI: "3.0.0",
+		Info: &openapi3.Info{
+			Title:   api.Name,
+			Version: "0.0.0",
+		},
+		Components: &openapi3.Components{
+			Schemas: make(openapi3.Schemas),
+		},
+		Paths: openapi3.Paths{},
+	}
+
+	// Add all the routes.
+	for _, r := range api.Routes {
+		path := &openapi3.PathItem{}
+		methodToOperation := make(map[string]*openapi3.Operation)
+		for _, method := range allMethods {
+			if handler, hasMethod := r.MethodToHandlerMap[method]; hasMethod {
+				op := &openapi3.Operation{}
+
+				// Get the models.
+				reqModel, resModels := handler.Handler.Models()
+
+				// Handle request types.
+				if reqModel.Type != nil {
+					ref := upsertSchema(spec.Components.Schemas, reqModel.Type)
+					op.RequestBody = &openapi3.RequestBodyRef{
+						Value: &openapi3.RequestBody{
+							Description: "",
+							Content: map[string]*openapi3.MediaType{
+								"application/json": {
+									Schema: ref,
+								},
+							},
+						},
+					}
+				}
+
+				// Handle response types.
+				for status, model := range resModels {
+					ref := upsertSchema(spec.Components.Schemas, model.Type)
+					op.AddResponse(status, &openapi3.Response{
+						Description: pointerTo(""),
+						Content: map[string]*openapi3.MediaType{
+							"application/json": {
+								Schema: ref,
+							},
+						},
+					})
+				}
+
+				// Register the method.
+				methodToOperation[method] = op
+			}
+		}
+
+		// Register the routes.
+		for method, operation := range methodToOperation {
+			switch method {
+			case http.MethodGet:
+				path.Get = operation
+			case http.MethodHead:
+				path.Head = operation
+			case http.MethodPost:
+				path.Post = operation
+			case http.MethodPut:
+				path.Put = operation
+			case http.MethodPatch:
+				path.Patch = operation
+			case http.MethodDelete:
+				path.Delete = operation
+			case http.MethodConnect:
+				path.Connect = operation
+			case http.MethodOptions:
+				path.Options = operation
+			case http.MethodTrace:
+				path.Trace = operation
+			default:
+				//TODO: Consider error instead?
+				panic("uknown verb")
+			}
+		}
+		spec.Paths[r.Path] = path
+	}
+
+	data, err := spec.MarshalJSON()
+	if err != nil {
+		return spec, fmt.Errorf("failed to marshal spec to/from JSON: %w", err)
+	}
+	spec, err = openapi3.NewLoader().LoadFromData(data)
+	if err != nil {
+		return spec, fmt.Errorf("failed to load spec to/from JSON: %w", err)
+	}
+	if err = spec.Validate(context.Background()); err != nil {
+		return spec, fmt.Errorf("failed validation: %w", err)
+	}
+	return spec, err
+}
+
+func pointerTo[T any](v T) *T {
+	return &v
+}
 
 func upsertSchema(schemas openapi3.Schemas, t reflect.Type) *openapi3.SchemaRef {
 	// If it already exists in the collection, return a reference to it.

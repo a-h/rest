@@ -1,167 +1,51 @@
 package rest
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"reflect"
-	"sort"
-	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-func API(name string, routes ...*RouteDef) *APIDef {
-	return &APIDef{
+// API creates a new APIModel.
+func API(name string, routes ...*RouteModel) *APIModel {
+	return &APIModel{
 		Name:   name,
 		Routes: routes,
 	}
 }
 
-type APIDef struct {
-	Name   string
-	Routes []*RouteDef
+// APIModel is a model of a REST API's routes, along with their
+// request and response types.
+type APIModel struct {
+	// Name of the API.
+	Name string
+	// Routes of the API.
+	Routes []*RouteModel
 }
 
-var allMethods = []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
-
-func (api APIDef) Spec() (spec *openapi3.T, err error) {
-	spec = &openapi3.T{
-		OpenAPI: "3.0.0",
-		Info: &openapi3.Info{
-			Title:   api.Name,
-			Version: "0.0.0",
-		},
-		Components: &openapi3.Components{
-			Schemas: make(openapi3.Schemas),
-		},
-		Paths: openapi3.Paths{},
-	}
-
-	// Add all the routes.
-	for _, r := range api.Routes {
-		path := &openapi3.PathItem{}
-		methodToOperation := make(map[string]*openapi3.Operation)
-		for _, method := range allMethods {
-			if handler, hasMethod := r.MethodToHandlerMap[method]; hasMethod {
-				op := &openapi3.Operation{}
-
-				// Get the models.
-				reqModel, resModels := handler.Handler.Models()
-
-				// Handle request types.
-				if reqModel.Type != nil {
-					ref := upsertSchema(spec.Components.Schemas, reqModel.Type)
-					op.RequestBody = &openapi3.RequestBodyRef{
-						Value: &openapi3.RequestBody{
-							Description: "",
-							Content: map[string]*openapi3.MediaType{
-								"application/json": {
-									Schema: ref,
-								},
-							},
-						},
-					}
-				}
-
-				// Handle response types.
-				for status, model := range resModels {
-					ref := upsertSchema(spec.Components.Schemas, model.Type)
-					op.AddResponse(status, &openapi3.Response{
-						Description: pointerTo(""),
-						Content: map[string]*openapi3.MediaType{
-							"application/json": {
-								Schema: ref,
-							},
-						},
-					})
-				}
-
-				// Register the method.
-				methodToOperation[method] = op
-			}
-		}
-
-		// Register the routes.
-		for method, operation := range methodToOperation {
-			switch method {
-			case http.MethodGet:
-				path.Get = operation
-			case http.MethodHead:
-				path.Head = operation
-			case http.MethodPost:
-				path.Post = operation
-			case http.MethodPut:
-				path.Put = operation
-			case http.MethodPatch:
-				path.Patch = operation
-			case http.MethodDelete:
-				path.Delete = operation
-			case http.MethodConnect:
-				path.Connect = operation
-			case http.MethodOptions:
-				path.Options = operation
-			case http.MethodTrace:
-				path.Trace = operation
-			default:
-				//TODO: Consider error instead?
-				panic("uknown verb")
-			}
-		}
-		spec.Paths[r.Path] = path
-	}
-
-	data, err := spec.MarshalJSON()
-	if err != nil {
-		return spec, fmt.Errorf("failed to marshal spec to/from JSON: %w", err)
-	}
-	spec, err = openapi3.NewLoader().LoadFromData(data)
-	if err != nil {
-		return spec, fmt.Errorf("failed to load spec to/from JSON: %w", err)
-	}
-	if err = spec.Validate(context.Background()); err != nil {
-		return spec, fmt.Errorf("failed validation: %w", err)
-	}
-	return spec, err
+// Spec creates an OpenAPI 3.0 specification document for the API.
+func (api APIModel) Spec() (spec *openapi3.T, err error) {
+	return createOpenAPI(api)
 }
 
-func pointerTo[T any](v T) *T {
-	return &v
-}
-
-func Route(path string) *RouteDef {
-	return &RouteDef{
+// Route creates a new RouteModel.
+func Route(path string) *RouteModel {
+	return &RouteModel{
 		Path:               path,
 		MethodToHandlerMap: make(map[string]RouteHandler),
 	}
 }
 
-type RouteDef struct {
+// RouteModel models a single API route.
+type RouteModel struct {
 	Path               string
 	MethodToHandlerMap map[string]RouteHandler
 }
 
-func (r RouteDef) String() string {
-	var sb strings.Builder
-	methods := getSortedKeys(r.MethodToHandlerMap)
-	for _, method := range methods {
-		sb.WriteString(fmt.Sprintf("%s %s\n", method, r.Path))
-	}
-	return sb.String()
-}
-
-func getSortedKeys[T any](m map[string]T) (keys []string) {
-	keys = make([]string, len(m))
-	var i int
-	for k := range m {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func (r *RouteDef) Get(handler Handler) *RouteDef {
+// Get adds a GET request handler to the route.
+func (r *RouteModel) Get(handler Handler) *RouteModel {
 	r.MethodToHandlerMap[http.MethodGet] = RouteHandler{
 		name:    fmt.Sprintf("GET %v", r.Path),
 		Handler: handler,
@@ -169,7 +53,8 @@ func (r *RouteDef) Get(handler Handler) *RouteDef {
 	return r
 }
 
-func (r *RouteDef) Post(handler Handler) *RouteDef {
+// Post adds a POST request handler to the route.
+func (r *RouteModel) Post(handler Handler) *RouteModel {
 	r.MethodToHandlerMap[http.MethodPost] = RouteHandler{
 		name:    fmt.Sprintf("POST %v", r.Path),
 		Handler: handler,
