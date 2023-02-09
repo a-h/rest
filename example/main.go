@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/a-h/rest"
@@ -11,6 +12,7 @@ import (
 
 func main() {
 	api := rest.NewAPI("messages")
+	api.StripPkgPaths = []string{"github.com/a-h/rest/example"}
 
 	api.Handle("/topics", &get.Handler{}).
 		WithResponseModel(http.MethodGet, http.StatusOK, rest.ModelOf[get.TopicsGetResponse]())
@@ -24,5 +26,6 @@ func main() {
 		spec.Info.Description = "Messages API"
 	})
 
+	fmt.Println("Listening on :8080...")
 	http.ListenAndServe(":8080", api)
 }
