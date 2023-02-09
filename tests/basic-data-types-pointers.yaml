@@ -1,0 +1,77 @@
+openapi: 3.0.0
+components:
+  schemas:
+    AllBasicDataTypesPointers:
+      type: object
+      properties:
+        Bool:
+          type: boolean
+          nullable: true
+        Byte:
+          type: integer
+          nullable: true
+        Float32:
+          type: number
+          nullable: true
+        Float64:
+          type: number
+          nullable: true
+        Int:
+          type: integer
+          nullable: true
+        Int8:
+          type: integer
+          nullable: true
+        Int16:
+          type: integer
+          nullable: true
+        Int32:
+          type: integer
+          nullable: true
+        Int64:
+          type: integer
+          nullable: true
+        Rune:
+          type: integer
+          nullable: true
+        String:
+          type: string
+          nullable: true
+        Uint:
+          type: integer
+          nullable: true
+        Uint8:
+          type: integer
+          nullable: true
+        Uint16:
+          type: integer
+          nullable: true
+        Uint32:
+          type: integer
+          nullable: true
+        Uint64:
+          type: integer
+          nullable: true
+        Uintptr:
+          type: integer
+          nullable: true
+info:
+  title: basic-data-types-pointers.yaml
+  version: 0.0.0
+paths:
+  /test:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllBasicDataTypesPointers'
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllBasicDataTypesPointers'
+        default:
+          description: ""

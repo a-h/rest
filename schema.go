@@ -41,7 +41,7 @@ func createOpenAPI(api *API) (spec *openapi3.T, err error) {
 
 				// Handle request types.
 				if models.Request.Type != nil {
-					ref, err := upsertSchema(spec.Components.Schemas, models.Request.Type)
+					ref, err := getSchema(spec.Components.Schemas, models.Request.Type, false)
 					if err != nil {
 						return spec, err
 					}
@@ -59,7 +59,7 @@ func createOpenAPI(api *API) (spec *openapi3.T, err error) {
 
 				// Handle response types.
 				for status, model := range models.Responses {
-					ref, err := upsertSchema(spec.Components.Schemas, model.Type)
+					ref, err := getSchema(spec.Components.Schemas, model.Type, false)
 					if err != nil {
 						return spec, err
 					}
@@ -126,78 +126,79 @@ func pointerTo[T any](v T) *T {
 	return &v
 }
 
-func upsertSchema(schemas openapi3.Schemas, t reflect.Type) (s *openapi3.SchemaRef, err error) {
-	// If it already exists in the collection, return a reference to it.
+func getSchema(schemas openapi3.Schemas, t reflect.Type, isNullable bool) (s *openapi3.SchemaRef, err error) {
 	if _, hasExisting := schemas[t.Name()]; hasExisting {
 		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", t.Name()), nil), nil
 	}
 
-	schema := openapi3.NewSchema()
-	schema.Properties = make(openapi3.Schemas)
-	schema.Type = "object"
-
-	//TODO: Add the fields using reflection.
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		if !f.IsExported() {
-			continue
-		}
-		// Get JSON name.
-		name := strings.Split(f.Tag.Get("json"), ",")[0]
-		if name == "" {
-			name = f.Name
-		}
-
-		//TODO: Read the struct tags for documentation too.
-		//TODO: Set the required fields to be the ones that aren't pointers.
-
-		// Handle basic types.
-		switch f.Type.Kind() {
-		case reflect.Slice, reflect.Array:
-			arraySchema := openapi3.NewArraySchema()
-			arraySchema.Items, err = upsertSchema(schemas, f.Type.Elem())
-			if err != nil {
-				return
-			}
-			schema.Properties[name] = openapi3.NewSchemaRef("", arraySchema)
-			continue
-		case reflect.String:
-			schema.Properties[name] = openapi3.NewSchemaRef("", openapi3.NewStringSchema())
-			continue
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			schema.Properties[name] = openapi3.NewSchemaRef("", openapi3.NewIntegerSchema())
-			continue
-		case reflect.Float64, reflect.Float32:
-			schema.Properties[name] = openapi3.NewSchemaRef("", openapi3.NewFloat64Schema())
-			continue
-		case reflect.Bool:
-			schema.Properties[name] = openapi3.NewSchemaRef("", openapi3.NewBoolSchema())
-			continue
-		case reflect.Complex64, reflect.Complex128:
-			return s, fmt.Errorf("error: complex types are not supported in JSON")
-		}
-
-		// Deal with embedded types.
-		if f.Anonymous {
-			// Add all the fields to this type.
-			upsertSchema(schemas, f.Type)
-			embedded := schemas[f.Type.Name()]
-			for name, ref := range embedded.Value.Properties {
-				schema.Properties[name] = ref
-			}
-			continue
-		}
-
-		// If it's not a basic type, it must be complex.
-		schema.Properties[name], err = upsertSchema(schemas, f.Type)
+	switch t.Kind() {
+	case reflect.Slice, reflect.Array:
+		arraySchema := openapi3.NewArraySchema()
+		arraySchema.Nullable = true // Arrays are always nilable in Go.
+		arraySchema.Items, err = getSchema(schemas, t.Elem(), false)
 		if err != nil {
 			return
 		}
+		return openapi3.NewSchemaRef("", arraySchema), nil
+	case reflect.String:
+		return openapi3.NewSchemaRef("", &openapi3.Schema{
+			Type:     openapi3.TypeString,
+			Nullable: isNullable,
+		}), nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return openapi3.NewSchemaRef("", &openapi3.Schema{
+			Type:     openapi3.TypeInteger,
+			Nullable: isNullable,
+		}), nil
+	case reflect.Float64, reflect.Float32:
+		return openapi3.NewSchemaRef("", &openapi3.Schema{
+			Type:     openapi3.TypeNumber,
+			Nullable: isNullable,
+		}), nil
+	case reflect.Bool:
+		return openapi3.NewSchemaRef("", &openapi3.Schema{
+			Type:     openapi3.TypeBoolean,
+			Nullable: isNullable,
+		}), nil
+	case reflect.Pointer:
+		ref, err := getSchema(schemas, t.Elem(), true)
+		if err != nil {
+			return nil, fmt.Errorf("error getting schema of pointer to %v: %w", t.Elem(), err)
+		}
+		return ref, err
+	case reflect.Struct:
+		schema := openapi3.NewObjectSchema()
+		schema.Properties = make(openapi3.Schemas)
+		for i := 0; i < t.NumField(); i++ {
+			f := t.Field(i)
+			if !f.IsExported() {
+				continue
+			}
+			// Get JSON name.
+			name := strings.Split(f.Tag.Get("json"), ",")[0]
+			if name == "" {
+				name = f.Name
+			}
+			schema.Properties[name], err = getSchema(schemas, f.Type, false)
+			if f.Anonymous {
+				// Add all the fields to this type.
+				_, err := getSchema(schemas, f.Type, false)
+				if err != nil {
+					return nil, fmt.Errorf("error getting schema of embedded type: %w", err)
+				}
+				embedded := schemas[f.Type.Name()]
+				for name, ref := range embedded.Value.Properties {
+					schema.Properties[name] = ref
+				}
+				continue
+			}
+		}
+		ref := openapi3.NewSchemaRef("", schema)
+		schemas[t.Name()] = ref
+
+		// Return a reference.
+		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", t.Name()), nil), nil
 	}
 
-	ref := openapi3.NewSchemaRef("", schema)
-	schemas[t.Name()] = ref
-
-	// Return a reference.
-	return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", t.Name()), nil), nil
+	return nil, fmt.Errorf("unsupported type: %v", t.Name())
 }
