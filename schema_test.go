@@ -1,4 +1,4 @@
-package rest
+package rest_test
 
 import (
 	"embed"
@@ -9,6 +9,7 @@ import (
 
 	_ "embed"
 
+	"github.com/a-h/rest"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -29,23 +30,19 @@ type TestResponseType struct {
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
-		input *APIModel
+		setup func(api *rest.API)
 	}{
 		{
 			name:  "test000.yaml",
-			input: API("test000"),
+			setup: func(api *rest.API) {},
 		},
 		{
 			name: "test001.yaml",
-			input: API("test001",
-				Route("/test").
-					Post(fakeHandler{
-						requestResponses{
-							request:   Request[TestRequestType](),
-							responses: Responses(Response[TestResponseType](http.StatusOK)),
-						},
-					}),
-			),
+			setup: func(api *rest.API) {
+				api.Handle("/test", testHandler).
+					WithRequestModel(http.MethodPost, rest.ModelOf[TestRequestType]()).
+					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[TestResponseType]())
+			},
 		},
 	}
 
@@ -67,8 +64,13 @@ func TestSchema(t *testing.T) {
 		if err != nil {
 			t.Errorf("could not load expected YAML: %v", err)
 		}
+
+		// Create the API.
+		api := rest.NewAPI(test.name)
+		// Configure it.
+		test.setup(api)
 		// Create the actual spec.
-		actual, err := test.input.Spec()
+		actual, err := api.Spec()
 		if err != nil {
 			t.Fatalf("failed to generate spec: %v", err)
 		}
@@ -85,19 +87,6 @@ func TestSchema(t *testing.T) {
 	}
 }
 
-type requestResponses struct {
-	request   Model
-	responses map[int]Model
-}
-
-type fakeHandler struct {
-	rr requestResponses
-}
-
-func (fh fakeHandler) Models() (request Model, responses map[int]Model) {
-	return fh.rr.request, fh.rr.responses
-}
-
-func (fh fakeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "OK")
-}
+var testHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	io.WriteString(w, "Hello, World")
+})

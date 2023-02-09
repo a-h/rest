@@ -12,7 +12,7 @@ components:
         IntField:
           type: integer
 info:
-  title: test001
+  title: test001.yaml
   version: 0.0.0
 paths:
   /test:
@@ -31,4 +31,3 @@ paths:
                 $ref: '#/components/schemas/TestResponseType'
         default:
           description: ""
-

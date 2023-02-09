@@ -29,22 +29,19 @@ func newSpec(name string) *openapi3.T {
 	}
 }
 
-func createOpenAPI(api APIModel) (spec *openapi3.T, err error) {
+func createOpenAPI(api API) (spec *openapi3.T, err error) {
 	spec = newSpec(api.Name)
 	// Add all the routes.
 	for _, r := range api.Routes {
 		path := &openapi3.PathItem{}
 		methodToOperation := make(map[string]*openapi3.Operation)
 		for _, method := range allMethods {
-			if handler, hasMethod := r.MethodToHandlerMap[method]; hasMethod {
+			if models, hasMethod := r.MethodToModels[method]; hasMethod {
 				op := &openapi3.Operation{}
 
-				// Get the models.
-				reqModel, resModels := handler.Handler.Models()
-
 				// Handle request types.
-				if reqModel.Type != nil {
-					ref := upsertSchema(spec.Components.Schemas, reqModel.Type)
+				if models.Request.Type != nil {
+					ref := upsertSchema(spec.Components.Schemas, models.Request.Type)
 					op.RequestBody = &openapi3.RequestBodyRef{
 						Value: &openapi3.RequestBody{
 							Description: "",
@@ -58,7 +55,7 @@ func createOpenAPI(api APIModel) (spec *openapi3.T, err error) {
 				}
 
 				// Handle response types.
-				for status, model := range resModels {
+				for status, model := range models.Responses {
 					ref := upsertSchema(spec.Components.Schemas, model.Type)
 					op.AddResponse(status, &openapi3.Response{
 						Description: pointerTo(""),

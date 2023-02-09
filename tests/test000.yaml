@@ -1,7 +1,7 @@
 openapi: 3.0.0
 components: {}
 info:
-  title: test000
+  title: test000.yaml
   version: 0.0.0
 paths: {}
 
