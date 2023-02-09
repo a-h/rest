@@ -3,7 +3,6 @@ package rest_test
 import (
 	"embed"
 	"io"
-	"log"
 	"net/http"
 	"testing"
 
@@ -27,6 +26,29 @@ type TestResponseType struct {
 	IntField int
 }
 
+type AllBasicDataTypes struct {
+	Int     int
+	Int8    int8
+	Int16   int16
+	Int32   int32
+	Int64   int64
+	Uint    uint
+	Uint8   uint8
+	Uint16  uint16
+	Uint32  uint32
+	Uint64  uint64
+	Uintptr uintptr
+	Float32 float32
+	Float64 float64
+	// Complex types are not supported by the Go JSON serializer.
+	//Complex64  complex64
+	//Complex128 complex128
+	Byte   byte
+	Rune   rune
+	String string
+	Bool   bool
+}
+
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -42,6 +64,14 @@ func TestSchema(t *testing.T) {
 				api.Handle("/test", testHandler).
 					WithRequestModel(http.MethodPost, rest.ModelOf[TestRequestType]()).
 					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[TestResponseType]())
+			},
+		},
+		{
+			name: "basic-data-types.yaml",
+			setup: func(api *rest.API) {
+				api.Handle("/test", testHandler).
+					WithRequestModel(http.MethodPost, rest.ModelOf[AllBasicDataTypes]()).
+					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[AllBasicDataTypes]())
 			},
 		},
 	}
@@ -80,9 +110,9 @@ func TestSchema(t *testing.T) {
 			t.Error(diff)
 			d, err := yaml.Marshal(actual)
 			if err != nil {
-				log.Fatalf("failed to marshal actual value: %v", err)
+				t.Fatalf("failed to marshal actual value: %v", err)
 			}
-			t.Error(string(d))
+			t.Error("\n\n" + string(d))
 		}
 	}
 }

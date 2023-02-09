@@ -41,7 +41,10 @@ func createOpenAPI(api *API) (spec *openapi3.T, err error) {
 
 				// Handle request types.
 				if models.Request.Type != nil {
-					ref := upsertSchema(spec.Components.Schemas, models.Request.Type)
+					ref, err := upsertSchema(spec.Components.Schemas, models.Request.Type)
+					if err != nil {
+						return spec, err
+					}
 					op.RequestBody = &openapi3.RequestBodyRef{
 						Value: &openapi3.RequestBody{
 							Description: "",
@@ -56,7 +59,10 @@ func createOpenAPI(api *API) (spec *openapi3.T, err error) {
 
 				// Handle response types.
 				for status, model := range models.Responses {
-					ref := upsertSchema(spec.Components.Schemas, model.Type)
+					ref, err := upsertSchema(spec.Components.Schemas, model.Type)
+					if err != nil {
+						return spec, err
+					}
 					op.AddResponse(status, &openapi3.Response{
 						Description: pointerTo(""),
 						Content: map[string]*openapi3.MediaType{
@@ -120,10 +126,10 @@ func pointerTo[T any](v T) *T {
 	return &v
 }
 
-func upsertSchema(schemas openapi3.Schemas, t reflect.Type) *openapi3.SchemaRef {
+func upsertSchema(schemas openapi3.Schemas, t reflect.Type) (s *openapi3.SchemaRef, err error) {
 	// If it already exists in the collection, return a reference to it.
 	if _, hasExisting := schemas[t.Name()]; hasExisting {
-		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", t.Name()), nil)
+		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", t.Name()), nil), nil
 	}
 
 	schema := openapi3.NewSchema()
@@ -146,23 +152,29 @@ func upsertSchema(schemas openapi3.Schemas, t reflect.Type) *openapi3.SchemaRef 
 		//TODO: Set the required fields to be the ones that aren't pointers.
 
 		// Handle basic types.
-		if isString(f) {
-			schema.Properties[name] = openapi3.NewSchemaRef("", openapi3.NewStringSchema())
-			continue
-		}
-		if isInteger(f) {
-			schema.Properties[name] = openapi3.NewSchemaRef("", openapi3.NewIntegerSchema())
-			continue
-		}
-		if isArray(f) {
+		switch f.Type.Kind() {
+		case reflect.Slice, reflect.Array:
 			arraySchema := openapi3.NewArraySchema()
-			arraySchema.Items = upsertSchema(schemas, f.Type.Elem())
+			arraySchema.Items, err = upsertSchema(schemas, f.Type.Elem())
+			if err != nil {
+				return
+			}
 			schema.Properties[name] = openapi3.NewSchemaRef("", arraySchema)
 			continue
-		}
-		if isBoolean(f) {
+		case reflect.String:
+			schema.Properties[name] = openapi3.NewSchemaRef("", openapi3.NewStringSchema())
+			continue
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			schema.Properties[name] = openapi3.NewSchemaRef("", openapi3.NewIntegerSchema())
+			continue
+		case reflect.Float64, reflect.Float32:
+			schema.Properties[name] = openapi3.NewSchemaRef("", openapi3.NewFloat64Schema())
+			continue
+		case reflect.Bool:
 			schema.Properties[name] = openapi3.NewSchemaRef("", openapi3.NewBoolSchema())
 			continue
+		case reflect.Complex64, reflect.Complex128:
+			return s, fmt.Errorf("error: complex types are not supported in JSON")
 		}
 
 		// Deal with embedded types.
@@ -177,34 +189,15 @@ func upsertSchema(schemas openapi3.Schemas, t reflect.Type) *openapi3.SchemaRef 
 		}
 
 		// If it's not a basic type, it must be complex.
-		schema.Properties[name] = upsertSchema(schemas, f.Type)
+		schema.Properties[name], err = upsertSchema(schemas, f.Type)
+		if err != nil {
+			return
+		}
 	}
 
 	ref := openapi3.NewSchemaRef("", schema)
 	schemas[t.Name()] = ref
 
 	// Return a reference.
-	return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", t.Name()), nil)
-}
-
-func isArray(f reflect.StructField) bool {
-	return f.Type.Kind() == reflect.Array || f.Type.Kind() == reflect.Slice
-}
-
-func isBoolean(f reflect.StructField) bool {
-	return f.Type.Name() == "bool"
-}
-
-func isInteger(f reflect.StructField) bool {
-	return f.Type.Name() == "int" ||
-		f.Type.Name() == "int64" ||
-		f.Type.Name() == "int32" ||
-		f.Type.Name() == "uint" ||
-		f.Type.Name() == "uint32" ||
-		f.Type.Name() == "uint64" ||
-		f.Type.Name() == "uint8"
-}
-
-func isString(f reflect.StructField) bool {
-	return f.Type.Name() == "string"
+	return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", t.Name()), nil), nil
 }
