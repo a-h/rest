@@ -27,10 +27,18 @@ type API struct {
 	// Routes of the API.
 	Routes []*Route
 
+	// configureSpec is executed after the spec is auto-generated, and can be used to
+	// adjust the OpenAPI specification.
+	configureSpec func(spec *openapi3.T)
+
 	// handler is a HTTP handler that serves up the routes.
 	handler    http.Handler
 	configured bool
 	m          sync.Mutex
+}
+
+func (api *API) ConfigureSpec(f func(spec *openapi3.T)) {
+	api.configureSpec = f
 }
 
 //go:embed swagger-ui/*
@@ -73,7 +81,14 @@ func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Spec creates an OpenAPI 3.0 specification document for the API.
 func (api *API) Spec() (spec *openapi3.T, err error) {
-	return createOpenAPI(api)
+	spec, err = createOpenAPI(api)
+	if err != nil {
+		return
+	}
+	if api.configureSpec != nil {
+		api.configureSpec(spec)
+	}
+	return
 }
 
 func (api *API) Handle(path string, handler http.Handler) *Route {

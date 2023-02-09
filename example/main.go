@@ -6,6 +6,7 @@ import (
 	"github.com/a-h/rest"
 	"github.com/a-h/rest/example/handlers/topic/post"
 	"github.com/a-h/rest/example/handlers/topics/get"
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 func main() {
@@ -17,6 +18,11 @@ func main() {
 	api.Handle("/topic", &post.Handler{}).
 		WithRequestModel(http.MethodPost, rest.ModelOf[post.TopicPostRequest]()).
 		WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[post.TopicPostResponse]())
+
+	api.ConfigureSpec(func(spec *openapi3.T) {
+		spec.Info.Version = "v1.0.0"
+		spec.Info.Description = "Messages API"
+	})
 
 	http.ListenAndServe(":8080", api)
 }
