@@ -133,6 +133,8 @@ func TestSchema(t *testing.T) {
 		{
 			name: "embedded-structs.yaml",
 			setup: func(api *rest.API) {
+				api.Handle("/embedded", testHandler).
+					WithResponseModel(http.MethodGet, http.StatusOK, rest.ModelOf[EmbeddedStructA]())
 				api.Handle("/test", testHandler).
 					WithRequestModel(http.MethodPost, rest.ModelOf[WithEmbeddedStructs]()).
 					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[WithEmbeddedStructs]())

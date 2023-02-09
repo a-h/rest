@@ -190,6 +190,11 @@ func getSchema(schemas openapi3.Schemas, t reflect.Type, opts getSchemaOpts) (s 
 				if err != nil {
 					return nil, fmt.Errorf("error getting schema of embedded type: %w", err)
 				}
+				// If there's no value, then the embedded type must already be added to the schemaset.
+				// So fetch it from there.
+				if embedded.Value == nil {
+					embedded = schemas[strings.TrimPrefix(embedded.Ref, "#/components/schemas/")]
+				}
 				for name, ref := range embedded.Value.Properties {
 					schema.Properties[name] = ref
 				}

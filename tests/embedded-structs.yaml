@@ -1,6 +1,11 @@
 openapi: 3.0.0
 components:                            
   schemas:
+    EmbeddedStructA:
+      type: object
+      properties:
+        A:
+          type: string
     WithEmbeddedStructs:
       type: object
       properties:
@@ -14,6 +19,17 @@ info:
   title: embedded-structs.yaml
   version: 0.0.0
 paths:
+  /embedded:
+    get:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddedStructA'
+        default:
+          description: ""
   /test:
     post:
       requestBody:
