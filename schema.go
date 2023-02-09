@@ -41,7 +41,7 @@ func createOpenAPI(api *API) (spec *openapi3.T, err error) {
 
 				// Handle request types.
 				if models.Request.Type != nil {
-					ref, err := getSchema(spec.Components.Schemas, models.Request.Type, false)
+					ref, err := getSchema(spec.Components.Schemas, models.Request.Type, getSchemaOpts{})
 					if err != nil {
 						return spec, err
 					}
@@ -59,7 +59,7 @@ func createOpenAPI(api *API) (spec *openapi3.T, err error) {
 
 				// Handle response types.
 				for status, model := range models.Responses {
-					ref, err := getSchema(spec.Components.Schemas, model.Type, false)
+					ref, err := getSchema(spec.Components.Schemas, model.Type, getSchemaOpts{})
 					if err != nil {
 						return spec, err
 					}
@@ -126,7 +126,12 @@ func pointerTo[T any](v T) *T {
 	return &v
 }
 
-func getSchema(schemas openapi3.Schemas, t reflect.Type, isNullable bool) (s *openapi3.SchemaRef, err error) {
+type getSchemaOpts struct {
+	IsPointer  bool
+	IsEmbedded bool
+}
+
+func getSchema(schemas openapi3.Schemas, t reflect.Type, opts getSchemaOpts) (s *openapi3.SchemaRef, err error) {
 	if _, hasExisting := schemas[t.Name()]; hasExisting {
 		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", t.Name()), nil), nil
 	}
@@ -135,7 +140,7 @@ func getSchema(schemas openapi3.Schemas, t reflect.Type, isNullable bool) (s *op
 	case reflect.Slice, reflect.Array:
 		arraySchema := openapi3.NewArraySchema()
 		arraySchema.Nullable = true // Arrays are always nilable in Go.
-		arraySchema.Items, err = getSchema(schemas, t.Elem(), false)
+		arraySchema.Items, err = getSchema(schemas, t.Elem(), getSchemaOpts{})
 		if err != nil {
 			return
 		}
@@ -143,25 +148,25 @@ func getSchema(schemas openapi3.Schemas, t reflect.Type, isNullable bool) (s *op
 	case reflect.String:
 		return openapi3.NewSchemaRef("", &openapi3.Schema{
 			Type:     openapi3.TypeString,
-			Nullable: isNullable,
+			Nullable: opts.IsPointer,
 		}), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return openapi3.NewSchemaRef("", &openapi3.Schema{
 			Type:     openapi3.TypeInteger,
-			Nullable: isNullable,
+			Nullable: opts.IsPointer,
 		}), nil
 	case reflect.Float64, reflect.Float32:
 		return openapi3.NewSchemaRef("", &openapi3.Schema{
 			Type:     openapi3.TypeNumber,
-			Nullable: isNullable,
+			Nullable: opts.IsPointer,
 		}), nil
 	case reflect.Bool:
 		return openapi3.NewSchemaRef("", &openapi3.Schema{
 			Type:     openapi3.TypeBoolean,
-			Nullable: isNullable,
+			Nullable: opts.IsPointer,
 		}), nil
 	case reflect.Pointer:
-		ref, err := getSchema(schemas, t.Elem(), true)
+		ref, err := getSchema(schemas, t.Elem(), getSchemaOpts{IsPointer: true})
 		if err != nil {
 			return nil, fmt.Errorf("error getting schema of pointer to %v: %w", t.Elem(), err)
 		}
@@ -179,26 +184,29 @@ func getSchema(schemas openapi3.Schemas, t reflect.Type, isNullable bool) (s *op
 			if name == "" {
 				name = f.Name
 			}
-			schema.Properties[name], err = getSchema(schemas, f.Type, false)
 			if f.Anonymous {
-				// Add all the fields to this type.
-				_, err := getSchema(schemas, f.Type, false)
+				// Add all the embedded fields to this type.
+				// Create an empty
+				embedded, err := getSchema(schemas, f.Type, getSchemaOpts{IsEmbedded: true})
 				if err != nil {
 					return nil, fmt.Errorf("error getting schema of embedded type: %w", err)
 				}
-				embedded := schemas[f.Type.Name()]
 				for name, ref := range embedded.Value.Properties {
 					schema.Properties[name] = ref
 				}
 				continue
 			}
+			schema.Properties[name], err = getSchema(schemas, f.Type, getSchemaOpts{})
 		}
-		ref := openapi3.NewSchemaRef("", schema)
+		value := openapi3.NewSchemaRef("", schema)
+		if opts.IsEmbedded {
+			return value, nil
+		}
 		schemaName := t.Name()
 		if schemaName == "" {
 			schemaName = fmt.Sprintf("AnonymousType%d", len(schemas))
 		}
-		schemas[schemaName] = ref
+		schemas[schemaName] = value
 
 		// Return a reference.
 		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", schemaName), nil), nil

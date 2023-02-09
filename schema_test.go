@@ -72,6 +72,18 @@ type AllBasicDataTypesPointers struct {
 	Bool   *bool
 }
 
+type EmbeddedStructA struct {
+	A string
+}
+type EmbeddedStructB struct {
+	B string
+}
+
+type WithEmbeddedStructs struct {
+	EmbeddedStructA
+	EmbeddedStructB
+}
+
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -111,6 +123,14 @@ func TestSchema(t *testing.T) {
 				api.Handle("/test", testHandler).
 					WithRequestModel(http.MethodPost, rest.ModelOf[struct{ A string }]()).
 					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[struct{ B string }]())
+			},
+		},
+		{
+			name: "embedded-structs.yaml",
+			setup: func(api *rest.API) {
+				api.Handle("/test", testHandler).
+					WithRequestModel(http.MethodPost, rest.ModelOf[WithEmbeddedStructs]()).
+					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[WithEmbeddedStructs]())
 			},
 		},
 	}

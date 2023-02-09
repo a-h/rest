@@ -1,0 +1,31 @@
+openapi: 3.0.0
+components:                            
+  schemas:
+    WithEmbeddedStructs:
+      type: object
+      properties:
+        A:
+          type: string
+        B:
+          type: string
+info:
+  title: embedded-structs.yaml
+  version: 0.0.0
+paths:
+  /test:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithEmbeddedStructs'
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithEmbeddedStructs'
+        default:
+          description: ""
+
