@@ -4,10 +4,13 @@ go 1.19
 
 replace github.com/a-h/rest v0.0.0 => ../
 
-require github.com/a-h/rest v0.0.0
+require (
+	github.com/a-h/respond v0.0.2
+	github.com/a-h/rest v0.0.0
+	github.com/getkin/kin-openapi v0.114.0
+)
 
 require (
-	github.com/getkin/kin-openapi v0.114.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect
 	github.com/invopop/yaml v0.1.0 // indirect

@@ -128,9 +128,15 @@ func getSchemaReference(name string) *openapi3.SchemaRef {
 
 type ModelOpts func(s *openapi3.Schema)
 
-func ModelIsPointer() ModelOpts {
+func WithNullable() ModelOpts {
 	return func(s *openapi3.Schema) {
 		s.Nullable = true
+	}
+}
+
+func WithDescription(desc string) ModelOpts {
+	return func(s *openapi3.Schema) {
+		s.Description = desc
 	}
 }
 
@@ -172,7 +178,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 	case reflect.Bool:
 		schema = openapi3.NewBoolSchema()
 	case reflect.Pointer:
-		name, schema, err = api.RegisterModel(ModelFromType(t.Elem()), ModelIsPointer())
+		name, schema, err = api.RegisterModel(ModelFromType(t.Elem()), WithNullable())
 	case reflect.Struct:
 		schema = openapi3.NewObjectSchema()
 		schema.Properties = make(openapi3.Schemas)
