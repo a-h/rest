@@ -5,16 +5,12 @@ components:
       type: object
       properties:
         time:
-          $ref: '#/components/schemas/time_Time'
+          type: string
+          format: date-time
         timePtr:
-          $ref: '#/components/schemas/time_TimePtr'
-    time_Time:
-      type: string
-      format: date-time
-    time_TimePtr:
-      type: string
-      format: date-time
-      nullable: true
+          type: string
+          format: date-time
+          nullable: true
 info:
   title: known-types.yaml
   version: 0.0.0

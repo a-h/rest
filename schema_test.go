@@ -172,36 +172,38 @@ func TestSchema(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		// Load test file.
-		expectedYAML, err := testFiles.ReadFile("tests/" + test.name)
-		if err != nil {
-			t.Fatalf("could not read file %q: %v", test.name, err)
-		}
-		expected, err := openapi3.NewLoader().LoadFromData(expectedYAML)
-		if err != nil {
-			t.Errorf("could not load expected YAML: %v", err)
-		}
-
-		// Create the API.
-		api := rest.NewAPI(test.name)
-		api.StripPkgPaths = []string{"github.com/a-h/rest"}
-		// Configure it.
-		test.setup(api)
-		// Create the actual spec.
-		actual, err := api.Spec()
-		if err != nil {
-			t.Errorf("failed to generate spec: %v", err)
-		}
-
-		// Compare.
-		if diff := cmp.Diff(expected, actual, cmpopts.IgnoreUnexported(ignoreUnexportedFieldsIn...)); diff != "" {
-			t.Error(diff)
-			d, err := yaml.Marshal(actual)
+		t.Run(test.name, func(t *testing.T) {
+			// Load test file.
+			expectedYAML, err := testFiles.ReadFile("tests/" + test.name)
 			if err != nil {
-				t.Fatalf("failed to marshal actual value: %v", err)
+				t.Fatalf("could not read file %q: %v", test.name, err)
 			}
-			t.Error("\n\n" + string(d))
-		}
+			expected, err := openapi3.NewLoader().LoadFromData(expectedYAML)
+			if err != nil {
+				t.Errorf("could not load expected YAML: %v", err)
+			}
+
+			// Create the API.
+			api := rest.NewAPI(test.name)
+			api.StripPkgPaths = []string{"github.com/a-h/rest"}
+			// Configure it.
+			test.setup(api)
+			// Create the actual spec.
+			actual, err := api.Spec()
+			if err != nil {
+				t.Errorf("failed to generate spec: %v", err)
+			}
+
+			// Compare.
+			if diff := cmp.Diff(expected, actual, cmpopts.IgnoreUnexported(ignoreUnexportedFieldsIn...)); diff != "" {
+				t.Error(diff)
+				d, err := yaml.Marshal(actual)
+				if err != nil {
+					t.Fatalf("failed to marshal actual value: %v", err)
+				}
+				t.Error("\n\n" + string(d))
+			}
+		})
 	}
 }
 

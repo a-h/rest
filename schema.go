@@ -41,7 +41,7 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 
 				// Handle request types.
 				if models.Request.Type != nil {
-					ref, err := api.getSchema(spec.Components.Schemas, models.Request.Type, getSchemaOpts{})
+					name, _, err := api.RegisterModel(models.Request)
 					if err != nil {
 						return spec, err
 					}
@@ -50,7 +50,7 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 							Description: "",
 							Content: map[string]*openapi3.MediaType{
 								"application/json": {
-									Schema: ref,
+									Schema: getSchemaReference(name),
 								},
 							},
 						},
@@ -59,7 +59,7 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 
 				// Handle response types.
 				for status, model := range models.Responses {
-					ref, err := api.getSchema(spec.Components.Schemas, model.Type, getSchemaOpts{})
+					name, _, err := api.RegisterModel(model)
 					if err != nil {
 						return spec, err
 					}
@@ -67,7 +67,7 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 						Description: pointerTo(""),
 						Content: map[string]*openapi3.MediaType{
 							"application/json": {
-								Schema: ref,
+								Schema: getSchemaReference(name),
 							},
 						},
 					})
@@ -78,30 +78,14 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 			}
 		}
 
+		// Populate the OpenAPI schemas from the models.
+		for name, schema := range api.models {
+			spec.Components.Schemas[name] = openapi3.NewSchemaRef("", schema)
+		}
+
 		// Register the routes.
 		for method, operation := range methodToOperation {
-			switch method {
-			case http.MethodGet:
-				path.Get = operation
-			case http.MethodHead:
-				path.Head = operation
-			case http.MethodPost:
-				path.Post = operation
-			case http.MethodPut:
-				path.Put = operation
-			case http.MethodPatch:
-				path.Patch = operation
-			case http.MethodDelete:
-				path.Delete = operation
-			case http.MethodConnect:
-				path.Connect = operation
-			case http.MethodOptions:
-				path.Options = operation
-			case http.MethodTrace:
-				path.Trace = operation
-			default:
-				return spec, fmt.Errorf("unknown HTTP method: %v", method)
-			}
+			path.SetOperation(method, operation)
 		}
 		spec.Paths[r.Path] = path
 	}
@@ -125,13 +109,7 @@ func pointerTo[T any](v T) *T {
 	return &v
 }
 
-type getSchemaOpts struct {
-	IsPointer  bool
-	IsEmbedded bool
-}
-
-func (api *API) getSchema(schemas openapi3.Schemas, t reflect.Type, opts getSchemaOpts) (s *openapi3.SchemaRef, err error) {
-	// Normalize the name.
+func (api *API) getModelName(t reflect.Type) string {
 	pkgPath, typeName := t.PkgPath(), t.Name()
 	if t.Kind() == reflect.Pointer {
 		pkgPath = t.Elem().PkgPath()
@@ -139,98 +117,111 @@ func (api *API) getSchema(schemas openapi3.Schemas, t reflect.Type, opts getSche
 	}
 	schemaName := api.normalizeTypeName(pkgPath, typeName)
 	if typeName == "" {
-		schemaName = fmt.Sprintf("AnonymousType%d", len(schemas))
+		schemaName = fmt.Sprintf("AnonymousType%d", len(api.models))
 	}
+	return schemaName
+}
+
+func getSchemaReference(name string) *openapi3.SchemaRef {
+	return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", name), nil)
+}
+
+type ModelOpts func(s *openapi3.Schema)
+
+func ModelIsPointer() ModelOpts {
+	return func(s *openapi3.Schema) {
+		s.Nullable = true
+	}
+}
+
+func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, schema *openapi3.Schema, err error) {
+	// Get the name.
+	t := model.Type
+	name = api.getModelName(t)
+
 	// If we've already got the schema, return it.
-	if _, hasExisting := schemas[schemaName]; hasExisting {
-		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", schemaName), nil), nil
-	}
-	// It's known, but not int the schemaset yet.
-	if known, isKnown := api.KnownTypes[t]; isKnown {
-		// Add it.
-		schemas[schemaName] = openapi3.NewSchemaRef("", known)
-		// Return a reference to it.
-		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", schemaName), nil), nil
+	var ok bool
+	if schema, ok = api.models[name]; ok {
+		return name, schema, nil
 	}
 
+	// It's known, but not in the schemaset yet.
+	if schema, ok = api.KnownTypes[t]; ok {
+		// Only objects need to be references.
+		if schema.Type == openapi3.TypeObject {
+			api.models[name] = schema
+		}
+		return name, schema, nil
+	}
+
+	var elementName string
 	switch t.Kind() {
 	case reflect.Slice, reflect.Array:
-		arraySchema := openapi3.NewArraySchema()
-		arraySchema.Nullable = true // Arrays are always nilable in Go.
-		arraySchema.Items, err = api.getSchema(schemas, t.Elem(), getSchemaOpts{})
+		elementName, _, err = api.RegisterModel(ModelFromType(t.Elem()))
 		if err != nil {
-			return
+			return name, schema, fmt.Errorf("error getting schema of slice element %v: %w", t.Elem(), err)
 		}
-		return openapi3.NewSchemaRef("", arraySchema), nil
+		schema = openapi3.NewArraySchema().WithNullable() // Arrays are always nilable in Go.
+		schema.Items = getSchemaReference(elementName)
 	case reflect.String:
-		return openapi3.NewSchemaRef("", &openapi3.Schema{
-			Type:     openapi3.TypeString,
-			Nullable: opts.IsPointer,
-		}), nil
+		schema = openapi3.NewStringSchema()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return openapi3.NewSchemaRef("", &openapi3.Schema{
-			Type:     openapi3.TypeInteger,
-			Nullable: opts.IsPointer,
-		}), nil
+		schema = openapi3.NewIntegerSchema()
 	case reflect.Float64, reflect.Float32:
-		return openapi3.NewSchemaRef("", &openapi3.Schema{
-			Type:     openapi3.TypeNumber,
-			Nullable: opts.IsPointer,
-		}), nil
+		schema = openapi3.NewFloat64Schema()
 	case reflect.Bool:
-		return openapi3.NewSchemaRef("", &openapi3.Schema{
-			Type:     openapi3.TypeBoolean,
-			Nullable: opts.IsPointer,
-		}), nil
+		schema = openapi3.NewBoolSchema()
 	case reflect.Pointer:
-		ref, err := api.getSchema(schemas, t.Elem(), getSchemaOpts{IsPointer: true})
-		if err != nil {
-			return nil, fmt.Errorf("error getting schema of pointer to %v: %w", t.Elem(), err)
-		}
-		return ref, err
+		name, schema, err = api.RegisterModel(ModelFromType(t.Elem()), ModelIsPointer())
 	case reflect.Struct:
-		schema := openapi3.NewObjectSchema()
+		schema = openapi3.NewObjectSchema()
 		schema.Properties = make(openapi3.Schemas)
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
 			if !f.IsExported() {
 				continue
 			}
-			// Get JSON name.
-			name := strings.Split(f.Tag.Get("json"), ",")[0]
-			if name == "" {
-				name = f.Name
+			// Get JSON fieldName.
+			fieldName := strings.Split(f.Tag.Get("json"), ",")[0]
+			if fieldName == "" {
+				fieldName = f.Name
+			}
+			// If the model doesn't exist.
+			_, alreadyExists := api.models[api.getModelName(f.Type)]
+			fieldSchemaName, fieldSchema, err := api.RegisterModel(ModelFromType(f.Type))
+			if err != nil {
+				return fieldName, schema, fmt.Errorf("error getting schema for type %q, field %q, failed to get schema for embedded type %q: %w", t, fieldName, f.Type, err)
 			}
 			if f.Anonymous {
-				// Add all the embedded fields to this type.
-				// Create an empty
-				embedded, err := api.getSchema(schemas, f.Type, getSchemaOpts{IsEmbedded: true})
-				if err != nil {
-					return nil, fmt.Errorf("error getting schema of embedded type: %w", err)
+				// It's an anonymous type, no need for a reference to it,
+				// since we're copying the fields.
+				if !alreadyExists {
+					delete(api.models, fieldSchemaName)
 				}
-				// If there's no value, then the embedded type must already be added to the schemaset.
-				// So fetch it from there.
-				if embedded.Value == nil {
-					embedded = schemas[strings.TrimPrefix(embedded.Ref, "#/components/schemas/")]
-				}
-				for name, ref := range embedded.Value.Properties {
+				// Add all embedded fields to this type.
+				for name, ref := range fieldSchema.Properties {
 					schema.Properties[name] = ref
 				}
 				continue
 			}
-			schema.Properties[name], err = api.getSchema(schemas, f.Type, getSchemaOpts{})
+			if fieldSchema.Type == openapi3.TypeObject {
+				schema.Properties[fieldName] = getSchemaReference(fieldSchemaName)
+				continue
+			}
+			schema.Properties[fieldName] = openapi3.NewSchemaRef("", fieldSchema)
 		}
-		value := openapi3.NewSchemaRef("", schema)
-		if opts.IsEmbedded {
-			return value, nil
-		}
-		schemas[schemaName] = value
-
-		// Return a reference.
-		return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", schemaName), nil), nil
+		api.models[name] = schema
 	}
 
-	return nil, fmt.Errorf("unsupported type: %v/%v", t.PkgPath(), t.Name())
+	if schema == nil {
+		return name, schema, fmt.Errorf("unsupported type: %v/%v", t.PkgPath(), t.Name())
+	}
+
+	for _, opt := range opts {
+		opt(schema)
+	}
+
+	return
 }
 
 var normalizer = strings.NewReplacer("/", "_", ".", "_")

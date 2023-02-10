@@ -18,6 +18,8 @@ func NewAPI(name string) *API {
 	return &API{
 		Name:       name,
 		KnownTypes: defaultKnownTypes,
+		// map of model name to schema.
+		models: map[string]*openapi3.Schema{},
 	}
 }
 
@@ -42,6 +44,11 @@ type API struct {
 	//
 	// Example values could be "github.com/a-h/rest".
 	StripPkgPaths []string
+
+	// Models are the models that are in use in the API.
+	// It's possible to customise the models prior to generation of the OpenAPI specification
+	// by editing this value.
+	models map[string]*openapi3.Schema
 
 	// KnownTypes are added to the OpenAPI specification output.
 	// The default implementation:
@@ -155,6 +162,12 @@ func ModelOf[T any]() Model {
 	var t T
 	return Model{
 		Type: reflect.TypeOf(t),
+	}
+}
+
+func ModelFromType(t reflect.Type) Model {
+	return Model{
+		Type: t,
 	}
 }
 
