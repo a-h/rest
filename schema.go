@@ -32,50 +32,52 @@ func newSpec(name string) *openapi3.T {
 func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 	spec = newSpec(api.Name)
 	// Add all the routes.
-	for _, r := range api.Routes {
+	for pattern, methodToRoute := range api.Routes {
 		path := &openapi3.PathItem{}
 		methodToOperation := make(map[string]*openapi3.Operation)
 		for _, method := range allMethods {
-			if models, hasMethod := r.MethodToModels[method]; hasMethod {
-				op := &openapi3.Operation{}
+			route, hasMethod := methodToRoute[Method(method)]
+			if !hasMethod {
+				continue
+			}
+			op := &openapi3.Operation{}
 
-				// Handle request types.
-				if models.Request.Type != nil {
-					name, _, err := api.RegisterModel(models.Request)
-					if err != nil {
-						return spec, err
-					}
-					op.RequestBody = &openapi3.RequestBodyRef{
-						Value: &openapi3.RequestBody{
-							Description: "",
-							Content: map[string]*openapi3.MediaType{
-								"application/json": {
-									Schema: getSchemaReference(name),
-								},
-							},
-						},
-					}
+			// Handle request types.
+			if route.Models.Request.Type != nil {
+				name, _, err := api.RegisterModel(route.Models.Request)
+				if err != nil {
+					return spec, err
 				}
-
-				// Handle response types.
-				for status, model := range models.Responses {
-					name, _, err := api.RegisterModel(model)
-					if err != nil {
-						return spec, err
-					}
-					op.AddResponse(status, &openapi3.Response{
-						Description: pointerTo(""),
+				op.RequestBody = &openapi3.RequestBodyRef{
+					Value: &openapi3.RequestBody{
+						Description: "",
 						Content: map[string]*openapi3.MediaType{
 							"application/json": {
 								Schema: getSchemaReference(name),
 							},
 						},
-					})
+					},
 				}
-
-				// Register the method.
-				methodToOperation[method] = op
 			}
+
+			// Handle response types.
+			for status, model := range route.Models.Responses {
+				name, _, err := api.RegisterModel(model)
+				if err != nil {
+					return spec, err
+				}
+				op.AddResponse(status, &openapi3.Response{
+					Description: pointerTo(""),
+					Content: map[string]*openapi3.MediaType{
+						"application/json": {
+							Schema: getSchemaReference(name),
+						},
+					},
+				})
+			}
+
+			// Register the method.
+			methodToOperation[method] = op
 		}
 
 		// Populate the OpenAPI schemas from the models.
@@ -87,7 +89,7 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 		for method, operation := range methodToOperation {
 			path.SetOperation(method, operation)
 		}
-		spec.Paths[r.Path] = path
+		spec.Paths[string(pattern)] = path
 	}
 
 	data, err := spec.MarshalJSON()

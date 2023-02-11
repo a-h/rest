@@ -1,0 +1,53 @@
+package main
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/a-h/respond"
+	"github.com/a-h/rest"
+	"github.com/a-h/rest/examples/stdlib/handlers/topic/post"
+	"github.com/a-h/rest/examples/stdlib/handlers/topics/get"
+	"github.com/getkin/kin-openapi/openapi3"
+)
+
+func main() {
+	// Create standard routes.
+	router := http.NewServeMux()
+	router.Handle("/topics", &get.Handler{})
+	router.Handle("/topic", &post.Handler{})
+
+	api := rest.NewAPI("messages")
+	api.StripPkgPaths = []string{"github.com/a-h/rest/example", "github.com/a-h/respond"}
+
+	// It's possible to customise the OpenAPI schema for each type.
+	// You can use helper functions, or write your own function that works
+	// directly on the openapi3.Schema type.
+	api.RegisterModel(rest.ModelOf[respond.Error](), rest.WithDescription("Standard JSON error"), func(s *openapi3.Schema) {
+		status := s.Properties["statusCode"]
+		status.Value.WithMin(100).WithMax(600)
+	})
+
+	api.Get("/topics").
+		HasResponseModel(http.StatusOK, rest.ModelOf[get.TopicsGetResponse]()).
+		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
+
+	api.Post("/topic").
+		HasRequestModel(rest.ModelOf[post.TopicPostRequest]()).
+		HasResponseModel(http.StatusOK, rest.ModelOf[post.TopicPostResponse]()).
+		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
+
+	api.ConfigureSpec(func(spec *openapi3.T) {
+		spec.Info.Version = "v1.0.0"
+		spec.Info.Description = "Messages API"
+	})
+
+	// Attach the swagger UI definition to your router.
+	router.Handle("/swagger-ui", api)
+
+	// And start listening.
+	fmt.Println("Listening on :8080...")
+	fmt.Println("Visit http://localhost:8080/swagger-ui to see API definitions")
+	fmt.Println("Listening on :8080...")
+	http.ListenAndServe(":8080", api)
+}

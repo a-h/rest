@@ -107,58 +107,57 @@ func TestSchema(t *testing.T) {
 		{
 			name: "test001.yaml",
 			setup: func(api *rest.API) {
-				api.Handle("/test", testHandler).
-					WithRequestModel(http.MethodPost, rest.ModelOf[TestRequestType]()).
-					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[TestResponseType]())
+				api.Post("/test").
+					HasRequestModel(rest.ModelOf[TestRequestType]()).
+					HasResponseModel(http.StatusOK, rest.ModelOf[TestResponseType]())
 			},
 		},
 		{
 			name: "basic-data-types.yaml",
 			setup: func(api *rest.API) {
-				api.Handle("/test", testHandler).
-					WithRequestModel(http.MethodPost, rest.ModelOf[AllBasicDataTypes]()).
-					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[AllBasicDataTypes]())
+				api.Post("/test").
+					HasRequestModel(rest.ModelOf[AllBasicDataTypes]()).
+					HasResponseModel(http.StatusOK, rest.ModelOf[AllBasicDataTypes]())
 			},
 		},
 		{
 			name: "basic-data-types-pointers.yaml",
 			setup: func(api *rest.API) {
-				api.Handle("/test", testHandler).
-					WithRequestModel(http.MethodPost, rest.ModelOf[AllBasicDataTypesPointers]()).
-					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[AllBasicDataTypesPointers]())
+				api.Post("/test").
+					HasRequestModel(rest.ModelOf[AllBasicDataTypesPointers]()).
+					HasResponseModel(http.StatusOK, rest.ModelOf[AllBasicDataTypesPointers]())
 			},
 		},
 		{
 			name: "anonymous-type.yaml",
 			setup: func(api *rest.API) {
-				api.Handle("/test", testHandler).
-					WithRequestModel(http.MethodPost, rest.ModelOf[struct{ A string }]()).
-					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[struct{ B string }]())
+				api.Post("/test").
+					HasRequestModel(rest.ModelOf[struct{ A string }]()).
+					HasResponseModel(http.StatusOK, rest.ModelOf[struct{ B string }]())
 			},
 		},
 		{
 			name: "embedded-structs.yaml",
 			setup: func(api *rest.API) {
-				api.Handle("/embedded", testHandler).
-					WithResponseModel(http.MethodGet, http.StatusOK, rest.ModelOf[EmbeddedStructA]())
-				api.Handle("/test", testHandler).
-					WithRequestModel(http.MethodPost, rest.ModelOf[WithEmbeddedStructs]()).
-					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[WithEmbeddedStructs]())
+				api.Get("/embedded").
+					HasResponseModel(http.StatusOK, rest.ModelOf[EmbeddedStructA]())
+				api.Post("/test").
+					HasRequestModel(rest.ModelOf[WithEmbeddedStructs]()).
+					HasResponseModel(http.StatusOK, rest.ModelOf[WithEmbeddedStructs]())
 			},
 		},
 		{
 			name: "with-name-struct-tags.yaml",
 			setup: func(api *rest.API) {
-				api.Handle("/test", testHandler).
-					WithRequestModel(http.MethodPost, rest.ModelOf[WithNameStructTags]()).
-					WithResponseModel(http.MethodPost, http.StatusOK, rest.ModelOf[WithNameStructTags]())
+				api.Post("/test").
+					HasRequestModel(rest.ModelOf[WithNameStructTags]()).
+					HasResponseModel(http.StatusOK, rest.ModelOf[WithNameStructTags]())
 			},
 		},
 		{
 			name: "known-types.yaml",
 			setup: func(api *rest.API) {
-				api.Handle("/test", testHandler).
-					WithResponseModel(http.MethodGet, http.StatusOK, rest.ModelOf[KnownTypes]())
+				api.Route(http.MethodGet, "/test").HasResponseModel(http.StatusOK, rest.ModelOf[KnownTypes]())
 			},
 		},
 	}

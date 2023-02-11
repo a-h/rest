@@ -1,13 +1,14 @@
-module github.com/a-h/rest/example
+module github.com/a-h/rest/examples/stdlib
 
 go 1.19
 
-replace github.com/a-h/rest v0.0.0 => ../
+replace github.com/a-h/rest v0.0.0 => ../../
 
 require (
 	github.com/a-h/respond v0.0.2
 	github.com/a-h/rest v0.0.0
 	github.com/getkin/kin-openapi v0.114.0
+	github.com/go-chi/chi/v5 v5.0.8
 )
 
 require (

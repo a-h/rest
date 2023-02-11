@@ -13,11 +13,36 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-// NewAPI creates a new APIModel.
-func NewAPI(name string) *API {
+type Router interface {
+	Routes() []*Route
+}
+
+// Route models a single API route.
+type Route struct {
+	Method  string
+	Pattern string
+	Params  RouteParams
+	Models  Models
+}
+
+type RouteParams struct {
+	//TODO: Think about URL, querystring and headers.
+}
+
+type APIOpts func(*API)
+
+func WithRouter(r Router) APIOpts {
+	return func(api *API) {
+		//TODO: Walk the routes and add them to the API.
+	}
+}
+
+// NewAPI creates a new API from the router.
+func NewAPI(name string, opts APIOpts) *API {
 	return &API{
 		Name:       name,
 		KnownTypes: defaultKnownTypes,
+		Routes:     make(map[Pattern]MethodToRoute),
 		// map of model name to schema.
 		models: map[string]*openapi3.Schema{},
 	}
@@ -28,13 +53,18 @@ var defaultKnownTypes = map[reflect.Type]*openapi3.Schema{
 	reflect.TypeOf(&time.Time{}): openapi3.NewDateTimeSchema().WithNullable(),
 }
 
+type MethodToRoute map[Method]*Route
+type Pattern string
+type Method string
+
 // API is a model of a REST API's routes, along with their
 // request and response types.
 type API struct {
 	// Name of the API.
 	Name string
 	// Routes of the API.
-	Routes []*Route
+	// From patterns, to methods, to route.
+	Routes map[Pattern]MethodToRoute
 	// StripPkgPaths to strip from the type names in the OpenAPI output to avoid
 	// leaking internal implementation details such as internal repo names.
 	//
@@ -59,7 +89,7 @@ type API struct {
 	// adjust the OpenAPI specification.
 	configureSpec func(spec *openapi3.T)
 
-	// handler is a HTTP handler that serves up the routes.
+	// handler is a HTTP handler that serves up the OpenAPI specification and Swagger UI.
 	handler    http.Handler
 	configured bool
 	m          sync.Mutex
@@ -87,14 +117,11 @@ func (api *API) configureHandler() {
 	}
 
 	m := http.NewServeMux()
-	for _, r := range api.Routes {
-		m.Handle(r.Path, r.Handler)
-	}
-	m.HandleFunc("/swagger.json", func(w http.ResponseWriter, r *http.Request) {
+	m.Handle("/", http.FileServer(http.FS(swaggerUI)))
+	m.HandleFunc("/swagger-ui/swagger.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(specBytes)
 	})
-	m.Handle("/swagger-ui/", http.FileServer(http.FS(swaggerUI)))
 	api.handler = m
 
 	api.configured = true
@@ -119,37 +146,42 @@ func (api *API) Spec() (spec *openapi3.T, err error) {
 	return
 }
 
-func (api *API) Handle(path string, handler http.Handler) *Route {
-	route := &Route{
-		Path:           path,
-		Handler:        handler,
-		MethodToModels: map[string]Models{},
+func (api *API) Route(method, pattern string) (r *Route) {
+	methodToRoute, ok := api.Routes[Pattern(pattern)]
+	if !ok {
+		methodToRoute = make(MethodToRoute)
+		api.Routes[Pattern(pattern)] = methodToRoute
 	}
-	api.Routes = append(api.Routes, route)
+	route, ok := methodToRoute[Method(method)]
+	if !ok {
+		route = &Route{
+			Method:  method,
+			Pattern: pattern,
+			Models: Models{
+				Responses: make(map[int]Model),
+			},
+		}
+		methodToRoute[Method(method)] = route
+	}
 	return route
 }
 
-// Route models a single API route.
-type Route struct {
-	Path           string
-	Handler        http.Handler
-	MethodToModels map[string]Models
+func (api *API) Get(pattern string) (r *Route) {
+	return api.Route(http.MethodGet, pattern)
+}
+func (api *API) Post(pattern string) (r *Route) {
+	return api.Route(http.MethodPost, pattern)
 }
 
-func (rm *Route) WithResponseModel(method string, status int, response Model) *Route {
-	models := rm.MethodToModels[method]
-	if models.Responses == nil {
-		models.Responses = make(map[int]Model)
-	}
-	models.Responses[status] = response
-	rm.MethodToModels[method] = models
+//TODO: Add the other verbs.
+
+func (rm *Route) HasResponseModel(status int, response Model) *Route {
+	rm.Models.Responses[status] = response
 	return rm
 }
 
-func (rm *Route) WithRequestModel(method string, request Model) *Route {
-	models := rm.MethodToModels[method]
-	models.Request = request
-	rm.MethodToModels[method] = models
+func (rm *Route) HasRequestModel(request Model) *Route {
+	rm.Models.Request = request
 	return rm
 }
 
