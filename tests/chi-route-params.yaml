@@ -12,9 +12,15 @@ info:
   title: chi-route-params.yaml
   version: 0.0.0
 paths:
-  /user/{userId}:
+  /organisation/{orgId:\d+}/user/{userId}:
     get:
       parameters:
+        - in: path
+          name: orgId
+          required: true
+          schema:
+            type: string
+            pattern: \d+
         - in: path
           name: userId
           required: true

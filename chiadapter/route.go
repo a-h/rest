@@ -42,29 +42,40 @@ func getParams(s string) (p rest.Params, err error) {
 	s = strings.TrimPrefix(s, "/")
 	segments := strings.Split(s, "/")
 	for _, segment := range segments {
-		name, ok := getPlaceholder(segment)
+		name, pattern, ok := getPlaceholder(segment)
 		if !ok {
 			continue
 		}
-		p.Path[name] = rest.PathParam{}
+		p.Path[name] = rest.PathParam{
+			Regexp: pattern,
+		}
 	}
 
 	// Query.
 	q := u.Query()
 	for k := range q {
-		name, ok := getPlaceholder(q.Get(k))
+		name, _, ok := getPlaceholder(q.Get(k))
 		if !ok {
 			continue
 		}
-		p.Query[name] = rest.QueryParam{}
+		p.Query[name] = rest.QueryParam{
+			Description: "",
+			Required:    false,
+			AllowEmpty:  false,
+		}
 	}
 
 	return
 }
 
-func getPlaceholder(s string) (name string, ok bool) {
+func getPlaceholder(s string) (name string, pattern string, ok bool) {
 	if !strings.HasPrefix(s, "{") || !strings.HasSuffix(s, "}") {
 		return
 	}
-	return s[1 : len(s)-1], true
+	parts := strings.SplitN(s[1:len(s)-1], ":", 2)
+	name = parts[0]
+	if len(parts) > 1 {
+		pattern = parts[1]
+	}
+	return name, pattern, true
 }

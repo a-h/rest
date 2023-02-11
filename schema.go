@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -29,6 +30,16 @@ func newSpec(name string) *openapi3.T {
 	}
 }
 
+func getSortedKeys[V any](m map[string]V) (op []string) {
+	for k := range m {
+		op = append(op, k)
+	}
+	sort.Slice(op, func(i, j int) bool {
+		return op[i] < op[j]
+	})
+	return op
+}
+
 func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 	spec = newSpec(api.Name)
 	// Add all the routes.
@@ -43,7 +54,9 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 			op := &openapi3.Operation{}
 
 			// Add the route params.
-			for k, v := range route.Params.Path {
+			pathKeys := getSortedKeys(route.Params.Path)
+			for _, k := range pathKeys {
+				v := route.Params.Path[k]
 				ps := openapi3.NewStringSchema()
 				if v.Regexp != "" {
 					ps.WithPattern(v.Regexp)

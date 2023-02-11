@@ -184,7 +184,7 @@ func TestSchema(t *testing.T) {
 			name: "chi-route-params.yaml",
 			setup: func(api *rest.API) (err error) {
 				router := chi.NewRouter()
-				router.Method(http.MethodGet, "/user/{userId}", testHandler)
+				router.Method(http.MethodGet, `/organisation/{orgId:\d+}/user/{userId}`, testHandler)
 
 				// Automatically get the URL params.
 				err = chiadapter.Merge(api, router)
@@ -193,7 +193,7 @@ func TestSchema(t *testing.T) {
 				}
 
 				// Manually configure the responses.
-				api.Route(http.MethodGet, "/user/{userId}").
+				api.Route(http.MethodGet, `/organisation/{orgId:\d+}/user/{userId}`).
 					HasResponseModel(http.StatusOK, rest.ModelOf[User]())
 
 				return
