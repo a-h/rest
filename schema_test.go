@@ -103,6 +103,10 @@ type User struct {
 	Name string `json:"name"`
 }
 
+type OK struct {
+	OK bool `json:"ok"`
+}
+
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -192,6 +196,21 @@ func TestSchema(t *testing.T) {
 				api.Route(http.MethodGet, "/user/{userId}").
 					HasResponseModel(http.StatusOK, rest.ModelOf[User]())
 
+				return
+			},
+		},
+		{
+			name: "all-methods.yaml",
+			setup: func(api *rest.API) (err error) {
+				api.Get("/get").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
+				api.Head("/head").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
+				api.Post("/post").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
+				api.Put("/put").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
+				api.Patch("/patch").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
+				api.Delete("/delete").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
+				api.Connect("/connect").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
+				api.Options("/options").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
+				api.Trace("/trace").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
 				return
 			},
 		},

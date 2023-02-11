@@ -1,0 +1,112 @@
+openapi: 3.0.0
+components:
+  schemas:
+    OK:
+      type: object
+      properties:
+        ok:
+          type: boolean
+info:
+  title: all-methods.yaml
+  version: 0.0.0
+paths:
+  /connect:
+    connect:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OK'
+        default:
+          description: ""
+  /delete:
+    delete:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OK'
+        default:
+          description: ""
+  /get:
+    get:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OK'
+        default:
+          description: ""
+  /head:
+    head:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OK'
+        default:
+          description: ""
+  /options:
+    options:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OK'
+        default:
+          description: ""
+  /patch:
+    patch:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OK'
+        default:
+          description: ""
+  /post:
+    post:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OK'
+        default:
+          description: ""
+  /put:
+    put:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OK'
+        default:
+          description: ""
+  /trace:
+    trace:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OK'
+        default:
+          description: ""
+

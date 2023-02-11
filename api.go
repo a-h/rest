@@ -194,11 +194,30 @@ func (api *API) Route(method, pattern string) (r *Route) {
 func (api *API) Get(pattern string) (r *Route) {
 	return api.Route(http.MethodGet, pattern)
 }
+func (api *API) Head(pattern string) (r *Route) {
+	return api.Route(http.MethodHead, pattern)
+}
 func (api *API) Post(pattern string) (r *Route) {
 	return api.Route(http.MethodPost, pattern)
 }
-
-//TODO: Add the other verbs.
+func (api *API) Put(pattern string) (r *Route) {
+	return api.Route(http.MethodPut, pattern)
+}
+func (api *API) Patch(pattern string) (r *Route) {
+	return api.Route(http.MethodPatch, pattern)
+}
+func (api *API) Delete(pattern string) (r *Route) {
+	return api.Route(http.MethodDelete, pattern)
+}
+func (api *API) Connect(pattern string) (r *Route) {
+	return api.Route(http.MethodConnect, pattern)
+}
+func (api *API) Options(pattern string) (r *Route) {
+	return api.Route(http.MethodOptions, pattern)
+}
+func (api *API) Trace(pattern string) (r *Route) {
+	return api.Route(http.MethodTrace, pattern)
+}
 
 func (rm *Route) HasResponseModel(status int, response Model) *Route {
 	rm.Models.Responses[status] = response
