@@ -42,6 +42,18 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 			}
 			op := &openapi3.Operation{}
 
+			// Add the route params.
+			for k, v := range route.Params.Path {
+				ps := openapi3.NewStringSchema()
+				if v.Regexp != "" {
+					ps.WithPattern(v.Regexp)
+				}
+				param := openapi3.NewPathParameter(k).
+					WithDescription(v.Description).
+					WithSchema(ps)
+				op.AddParameter(param)
+			}
+
 			// Handle request types.
 			if route.Models.Request.Type != nil {
 				name, _, err := api.RegisterModel(route.Models.Request)

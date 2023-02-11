@@ -6,6 +6,7 @@ import (
 
 	"github.com/a-h/respond"
 	"github.com/a-h/rest"
+	"github.com/a-h/rest/chiadapter"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 )
@@ -35,19 +36,18 @@ type TopicRecord struct {
 }
 
 func main() {
-	api := rest.NewAPI("Messaging API")
-	// Because this example is all in the main package, we can strip the `main_` namespace from
-	// the types.
-	api.StripPkgPaths = []string{"main", "github.com/a-h"}
-
-	// It's possible to customise the OpenAPI schema for each type.
-	api.RegisterModel(rest.ModelOf[respond.Error](), rest.WithDescription("Standard JSON error"), func(s *openapi3.Schema) {
-		status := s.Properties["statusCode"]
-		status.Value.WithMin(100).WithMax(600)
-	})
-
 	// Define routes in any router.
 	router := chi.NewRouter()
+
+	router.Get("/topic/{id}", func(w http.ResponseWriter, r *http.Request) {
+		resp := Topic{
+			Namespace: "example",
+			Topic:     "topic",
+			Private:   false,
+			ViewCount: 412,
+		}
+		respond.WithJSON(w, resp, http.StatusOK)
+	})
 
 	router.Get("/topics", func(w http.ResponseWriter, r *http.Request) {
 		resp := TopicsGetResponse{
@@ -71,7 +71,28 @@ func main() {
 		respond.WithJSON(w, resp, http.StatusOK)
 	})
 
+	// Create the API definition.
+	api := rest.NewAPI("Messaging API")
+
+	// Create the routes and parameters of the Router in the REST API definition with an
+	// adaptor, or do it manually.
+	chiadapter.Merge(api, router)
+
+	// Because this example is all in the main package, we can strip the `main_` namespace from
+	// the types.
+	api.StripPkgPaths = []string{"main", "github.com/a-h"}
+
+	// It's possible to customise the OpenAPI schema for each type.
+	api.RegisterModel(rest.ModelOf[respond.Error](), rest.WithDescription("Standard JSON error"), func(s *openapi3.Schema) {
+		status := s.Properties["statusCode"]
+		status.Value.WithMin(100).WithMax(600)
+	})
+
 	// Document the routes.
+	api.Get("/topic/{id}").
+		HasResponseModel(http.StatusOK, rest.ModelOf[TopicsGetResponse]()).
+		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
+
 	api.Get("/topics").
 		HasResponseModel(http.StatusOK, rest.ModelOf[TopicsGetResponse]()).
 		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())

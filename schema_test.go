@@ -2,6 +2,7 @@ package rest_test
 
 import (
 	"embed"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -10,7 +11,9 @@ import (
 	_ "embed"
 
 	"github.com/a-h/rest"
+	"github.com/a-h/rest/chiadapter"
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"gopkg.in/yaml.v2"
@@ -95,69 +98,101 @@ type KnownTypes struct {
 	TimePtr *time.Time `json:"timePtr"`
 }
 
+type User struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
-		setup func(api *rest.API)
+		setup func(api *rest.API) error
 	}{
 		{
 			name:  "test000.yaml",
-			setup: func(api *rest.API) {},
+			setup: func(api *rest.API) error { return nil },
 		},
 		{
 			name: "test001.yaml",
-			setup: func(api *rest.API) {
+			setup: func(api *rest.API) error {
 				api.Post("/test").
 					HasRequestModel(rest.ModelOf[TestRequestType]()).
 					HasResponseModel(http.StatusOK, rest.ModelOf[TestResponseType]())
+				return nil
 			},
 		},
 		{
 			name: "basic-data-types.yaml",
-			setup: func(api *rest.API) {
+			setup: func(api *rest.API) error {
 				api.Post("/test").
 					HasRequestModel(rest.ModelOf[AllBasicDataTypes]()).
 					HasResponseModel(http.StatusOK, rest.ModelOf[AllBasicDataTypes]())
+				return nil
 			},
 		},
 		{
 			name: "basic-data-types-pointers.yaml",
-			setup: func(api *rest.API) {
+			setup: func(api *rest.API) error {
 				api.Post("/test").
 					HasRequestModel(rest.ModelOf[AllBasicDataTypesPointers]()).
 					HasResponseModel(http.StatusOK, rest.ModelOf[AllBasicDataTypesPointers]())
+				return nil
 			},
 		},
 		{
 			name: "anonymous-type.yaml",
-			setup: func(api *rest.API) {
+			setup: func(api *rest.API) error {
 				api.Post("/test").
 					HasRequestModel(rest.ModelOf[struct{ A string }]()).
 					HasResponseModel(http.StatusOK, rest.ModelOf[struct{ B string }]())
+				return nil
 			},
 		},
 		{
 			name: "embedded-structs.yaml",
-			setup: func(api *rest.API) {
+			setup: func(api *rest.API) error {
 				api.Get("/embedded").
 					HasResponseModel(http.StatusOK, rest.ModelOf[EmbeddedStructA]())
 				api.Post("/test").
 					HasRequestModel(rest.ModelOf[WithEmbeddedStructs]()).
 					HasResponseModel(http.StatusOK, rest.ModelOf[WithEmbeddedStructs]())
+				return nil
 			},
 		},
 		{
 			name: "with-name-struct-tags.yaml",
-			setup: func(api *rest.API) {
+			setup: func(api *rest.API) error {
 				api.Post("/test").
 					HasRequestModel(rest.ModelOf[WithNameStructTags]()).
 					HasResponseModel(http.StatusOK, rest.ModelOf[WithNameStructTags]())
+				return nil
 			},
 		},
 		{
 			name: "known-types.yaml",
-			setup: func(api *rest.API) {
-				api.Route(http.MethodGet, "/test").HasResponseModel(http.StatusOK, rest.ModelOf[KnownTypes]())
+			setup: func(api *rest.API) error {
+				api.Route(http.MethodGet, "/test").
+					HasResponseModel(http.StatusOK, rest.ModelOf[KnownTypes]())
+				return nil
+			},
+		},
+		{
+			name: "chi-route-params.yaml",
+			setup: func(api *rest.API) (err error) {
+				router := chi.NewRouter()
+				router.Method(http.MethodGet, "/user/{userId}", testHandler)
+
+				// Automatically get the URL params.
+				err = chiadapter.Merge(api, router)
+				if err != nil {
+					return fmt.Errorf("failed to merge: %w", err)
+				}
+
+				// Manually configure the responses.
+				api.Route(http.MethodGet, "/user/{userId}").
+					HasResponseModel(http.StatusOK, rest.ModelOf[User]())
+
+				return
 			},
 		},
 	}
@@ -168,6 +203,7 @@ func TestSchema(t *testing.T) {
 		openapi3.SchemaRef{},
 		openapi3.RequestBodyRef{},
 		openapi3.ResponseRef{},
+		openapi3.ParameterRef{},
 	}
 
 	for _, test := range tests {

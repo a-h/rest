@@ -3,7 +3,9 @@ module github.com/a-h/rest
 go 1.19
 
 require (
+	github.com/a-h/pathvars v0.0.12
 	github.com/getkin/kin-openapi v0.114.0
+	github.com/go-chi/chi/v5 v5.0.8
 	github.com/google/go-cmp v0.5.9
 	gopkg.in/yaml.v2 v2.4.0
 )

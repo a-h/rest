@@ -7,8 +7,8 @@ components:
         A:   
           type: string                                                                            
     AnonymousType1: 
-      type: object                                                                                                                                                                                           
-      properties:                                                                                                                                                                                            
+      type: object
+      properties:
         B:
           type: string        
 info:           
@@ -18,7 +18,7 @@ paths:
   /test:        
     post:                                                                                         
       requestBody:       
-        content:                                                                                                                                                                                             
+        content:
           application/json:     
             schema:  
               $ref: '#/components/schemas/AnonymousType0'                                         
@@ -26,9 +26,9 @@ paths:
         "200":                      
           description: ""                                                                         
           content:                                                                                
-            application/json:                                                                                                                                                                                
+            application/json:
               schema:
-                $ref: '#/components/schemas/AnonymousType1'                                                                                                                                                  
-        default:                                                                                                                                                                                             
+                $ref: '#/components/schemas/AnonymousType1'
+        default:
           description: ""
 

@@ -13,32 +13,10 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-type Router interface {
-	Routes() []*Route
-}
-
-// Route models a single API route.
-type Route struct {
-	Method  string
-	Pattern string
-	Params  RouteParams
-	Models  Models
-}
-
-type RouteParams struct {
-	//TODO: Think about URL, querystring and headers.
-}
-
 type APIOpts func(*API)
 
-func WithRouter(r Router) APIOpts {
-	return func(api *API) {
-		//TODO: Walk the routes and add them to the API.
-	}
-}
-
 // NewAPI creates a new API from the router.
-func NewAPI(name string, opts APIOpts) *API {
+func NewAPI(name string, opts ...APIOpts) *API {
 	return &API{
 		Name:       name,
 		KnownTypes: defaultKnownTypes,
@@ -51,6 +29,30 @@ func NewAPI(name string, opts APIOpts) *API {
 var defaultKnownTypes = map[reflect.Type]*openapi3.Schema{
 	reflect.TypeOf(time.Time{}):  openapi3.NewDateTimeSchema(),
 	reflect.TypeOf(&time.Time{}): openapi3.NewDateTimeSchema().WithNullable(),
+}
+
+// Route models a single API route.
+type Route struct {
+	Method  string
+	Pattern string
+	Params  Params
+	Models  Models
+}
+
+type Params struct {
+	Path  map[string]PathParam
+	Query map[string]QueryParam
+}
+
+type PathParam struct {
+	Description string
+	Regexp      string
+}
+
+type QueryParam struct {
+	Description string
+	Required    bool
+	AllowEmpty  bool
 }
 
 type MethodToRoute map[Method]*Route
@@ -93,6 +95,25 @@ type API struct {
 	handler    http.Handler
 	configured bool
 	m          sync.Mutex
+}
+
+func (api *API) Merge(r Route) {
+	toUpdate := api.Route(r.Method, r.Pattern)
+	mergeMap(toUpdate.Params.Path, r.Params.Path)
+	mergeMap(toUpdate.Params.Query, r.Params.Query)
+	if toUpdate.Models.Request.Type == nil {
+		toUpdate.Models.Request = r.Models.Request
+	}
+	mergeMap(toUpdate.Models.Responses, r.Models.Responses)
+}
+
+func mergeMap[TKey comparable, TValue any](into, from map[TKey]TValue) {
+	for kf, vf := range from {
+		_, ok := into[kf]
+		if !ok {
+			into[kf] = vf
+		}
+	}
 }
 
 func (api *API) ConfigureSpec(f func(spec *openapi3.T)) {
@@ -160,6 +181,10 @@ func (api *API) Route(method, pattern string) (r *Route) {
 			Models: Models{
 				Responses: make(map[int]Model),
 			},
+			Params: Params{
+				Path:  make(map[string]PathParam),
+				Query: make(map[string]QueryParam),
+			},
 		}
 		methodToRoute[Method(method)] = route
 	}
@@ -182,6 +207,11 @@ func (rm *Route) HasResponseModel(status int, response Model) *Route {
 
 func (rm *Route) HasRequestModel(request Model) *Route {
 	rm.Models.Request = request
+	return rm
+}
+
+func (rm *Route) HasPathParameter(name string, p PathParam) *Route {
+	rm.Params.Path[name] = p
 	return rm
 }
 
