@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/getkin/kin-openapi v0.114.0
 	github.com/go-chi/chi/v5 v5.0.8
-	github.com/wI2L/jsondiff v0.3.0
+	github.com/google/go-cmp v0.5.8
 	golang.org/x/exp v0.0.0-20230210204819-062eb4c674ab
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -18,8 +18,5 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/perimeterx/marshmallow v1.1.4 // indirect
-	github.com/tidwall/gjson v1.14.3 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -16,7 +16,7 @@ import (
 	"github.com/a-h/rest/chiadapter"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
-	"github.com/wI2L/jsondiff"
+	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
 )
 
@@ -268,12 +268,6 @@ func TestSchema(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			var expected, actual []byte
 
-			// Load test file.
-			expectedYAML, err := testFiles.ReadFile("tests/" + test.name)
-			if err != nil {
-				t.Fatalf("could not read file %q: %v", test.name, err)
-			}
-
 			var wg sync.WaitGroup
 			wg.Add(2)
 			errs := make([]error, 2)
@@ -281,22 +275,23 @@ func TestSchema(t *testing.T) {
 			// Validate the test file.
 			go func() {
 				defer wg.Done()
+				// Load test file.
+				expectedYAML, err := testFiles.ReadFile("tests/" + test.name)
+				if err != nil {
+					t.Fatalf("could not read file %q: %v", test.name, err)
+				}
 				expectedSpec, err := openapi3.NewLoader().LoadFromData(expectedYAML)
 				if err != nil {
 					errs[0] = fmt.Errorf("error in expected YAML: %w", err)
 					return
 				}
-				expected, err = json.Marshal(expectedSpec)
-				if err != nil {
-					errs[0] = fmt.Errorf("error converting expected spec to JSON: %w", err)
-				}
+				expected, errs[0] = specToYAML(expectedSpec)
 			}()
-
-			// Create the API.
-			api := rest.NewAPI(test.name)
 
 			go func() {
 				defer wg.Done()
+				// Create the API.
+				api := rest.NewAPI(test.name)
 				api.StripPkgPaths = []string{"github.com/a-h/rest"}
 				// Configure it.
 				test.setup(api)
@@ -305,13 +300,7 @@ func TestSchema(t *testing.T) {
 				if err != nil {
 					t.Errorf("failed to generate spec: %v", err)
 				}
-				// Use JSON, because kin-openapi doesn't customise the YAML output.
-				// For example, AdditionalProperties only has a MarshalJSON capability.
-				actual, err = json.Marshal(spec)
-				if err != nil {
-					errs[1] = fmt.Errorf("could not marshal actual to JSON: %w", err)
-					return
-				}
+				actual, errs[1] = specToYAML(spec)
 			}()
 
 			wg.Wait()
@@ -327,20 +316,28 @@ func TestSchema(t *testing.T) {
 			}
 
 			// Compare the JSON marshalled output to ignore unexported fields and internal state.
-			diff, err := jsondiff.CompareJSON(expected, actual)
-			if err != nil {
-				t.Fatalf("failed to compare: %v", err)
-			}
-			if len(diff) > 0 {
+			if diff := cmp.Diff(expected, actual); diff != "" {
 				t.Error(diff)
-				d, err := yaml.Marshal(actual)
-				if err != nil {
-					t.Fatalf("failed to marshal actual value: %v", err)
-				}
-				t.Error("\n\n" + string(d))
+				t.Error(string(actual))
 			}
 		})
 	}
+}
+
+func specToYAML(spec *openapi3.T) (out []byte, err error) {
+	// Use JSON, because kin-openapi doesn't customise the YAML output.
+	// For example, AdditionalProperties only has a MarshalJSON capability.
+	out, err = json.Marshal(spec)
+	if err != nil {
+		err = fmt.Errorf("could not marshal spec to JSON: %w", err)
+		return
+	}
+	var m map[string]interface{}
+	err = json.Unmarshal(out, &m)
+	if err != nil {
+		return
+	}
+	return yaml.Marshal(m)
 }
 
 var testHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
