@@ -75,7 +75,7 @@ func main() {
 	api := rest.NewAPI("Messaging API")
 
 	// Create the routes and parameters of the Router in the REST API definition with an
-	// adaptor, or do it manually.
+	// adapter, or do it manually.
 	chiadapter.Merge(api, router)
 
 	// Because this example is all in the main package, we can strip the `main_` namespace from
