@@ -2,9 +2,11 @@ package rest_test
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,7 +17,6 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"gopkg.in/yaml.v2"
 )
 
@@ -128,6 +129,12 @@ type WithEnums struct {
 	SS []StringEnum `json:"ss"`
 	I  IntEnum      `json:"i"`
 	V  string       `json:"v"`
+}
+
+type Pence int64
+
+type WithMaps struct {
+	Amounts map[string]Pence `json:"amounts"`
 }
 
 func TestSchema(t *testing.T) {
@@ -248,42 +255,87 @@ func TestSchema(t *testing.T) {
 				return
 			},
 		},
-	}
-
-	ignoreUnexportedFieldsIn := []any{
-		openapi3.T{},
-		openapi3.Schema{},
-		openapi3.SchemaRef{},
-		openapi3.RequestBodyRef{},
-		openapi3.ResponseRef{},
-		openapi3.ParameterRef{},
+		{
+			name: "with-maps.yaml",
+			setup: func(api *rest.API) (err error) {
+				api.Get("/get").HasResponseModel(http.StatusOK, rest.ModelOf[WithMaps]())
+				return
+			},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			var expected, actual map[string]interface{}
+
 			// Load test file.
 			expectedYAML, err := testFiles.ReadFile("tests/" + test.name)
 			if err != nil {
 				t.Fatalf("could not read file %q: %v", test.name, err)
 			}
-			expected, err := openapi3.NewLoader().LoadFromData(expectedYAML)
-			if err != nil {
-				t.Errorf("could not load expected YAML: %v", err)
-			}
+
+			var wg sync.WaitGroup
+			wg.Add(3)
+			errs := make([]error, 3)
+
+			// Validate the test file.
+			go func() {
+				defer wg.Done()
+				_, err = openapi3.NewLoader().LoadFromData(expectedYAML)
+				if err != nil {
+					errs[0] = fmt.Errorf("error in expected YAML: %w", err)
+				}
+			}()
+
+			// Load expected YAML.
+			go func() {
+				defer wg.Done()
+				err = yaml.Unmarshal(expectedYAML, &expected)
+				if err != nil {
+					errs[1] = fmt.Errorf("could not unmarshal expected YAML: %w", err)
+				}
+			}()
 
 			// Create the API.
 			api := rest.NewAPI(test.name)
-			api.StripPkgPaths = []string{"github.com/a-h/rest"}
-			// Configure it.
-			test.setup(api)
-			// Create the actual spec.
-			actual, err := api.Spec()
-			if err != nil {
-				t.Errorf("failed to generate spec: %v", err)
+
+			go func() {
+				defer wg.Done()
+				api.StripPkgPaths = []string{"github.com/a-h/rest"}
+				// Configure it.
+				test.setup(api)
+				// Create the actual spec.
+				spec, err := api.Spec()
+				if err != nil {
+					t.Errorf("failed to generate spec: %v", err)
+				}
+				// Use JSON, because kin-openapi doesn't customise the YAML output.
+				// For example, AdditionalProperties only has a MarshalJSON capability.
+				actualJSON, err := json.Marshal(spec)
+				if err != nil {
+					errs[2] = fmt.Errorf("could not marshal actual to YAML: %w", err)
+					return
+				}
+				err = yaml.Unmarshal(actualJSON, &actual)
+				if err != nil {
+					errs[2] = fmt.Errorf("could not unmarshal actual YAML: %w", err)
+				}
+			}()
+
+			wg.Wait()
+			var setupFailed bool
+			for _, err := range errs {
+				if err != nil {
+					setupFailed = true
+					t.Error(err)
+				}
+			}
+			if setupFailed {
+				t.Fatal("test setup failed")
 			}
 
-			// Compare.
-			if diff := cmp.Diff(expected, actual, cmpopts.IgnoreUnexported(ignoreUnexportedFieldsIn...)); diff != "" {
+			// Compare the JSON marshalled output to ignore unexported fields and internal state.
+			if diff := cmp.Diff(expected, actual); diff != "" {
 				t.Error(diff)
 				d, err := yaml.Marshal(actual)
 				if err != nil {

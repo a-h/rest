@@ -1,0 +1,27 @@
+openapi: 3.0.0
+components:
+  schemas:
+    WithMaps:
+      type: object
+      properties:
+        amounts:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: integer
+info:
+  title: with-maps.yaml
+  version: 0.0.0
+paths:
+  /get:
+    get:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithMaps'
+        default:
+          description: ""
+
