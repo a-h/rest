@@ -1,0 +1,7 @@
+{
+  "github.com/a-h/rest/getcomments/parser/tests/generics.Data": "Data should be included.",
+  "github.com/a-h/rest/getcomments/parser/tests/generics.Data.AllowThis": "AllowThis should be included.",
+  "github.com/a-h/rest/getcomments/parser/tests/generics.Data.Int": "Int should be included.",
+  "github.com/a-h/rest/getcomments/parser/tests/generics.Data.String": "String should be included.",
+  "github.com/a-h/rest/getcomments/parser/tests/generics.DataOfT": "DataOfT is included in the output."
+}

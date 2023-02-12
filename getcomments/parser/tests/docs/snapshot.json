@@ -1,0 +1,10 @@
+{
+  "github.com/a-h/rest/getcomments/parser/tests/docs.CatType": "CatType is a type of cat.",
+  "github.com/a-h/rest/getcomments/parser/tests/docs.CatTypeLion": "CatTypeLion is a lion.",
+  "github.com/a-h/rest/getcomments/parser/tests/docs.CatTypeManx": "Some say that these are relatively aggressive.",
+  "github.com/a-h/rest/getcomments/parser/tests/docs.CatTypePersian": "Looks grumpy, but is warm and caring.",
+  "github.com/a-h/rest/getcomments/parser/tests/docs.CatTypeTiger": "The king of big cats.",
+  "github.com/a-h/rest/getcomments/parser/tests/docs.Data": "Struct documentation.",
+  "github.com/a-h/rest/getcomments/parser/tests/docs.Data.A": "Field documentation.",
+  "github.com/a-h/rest/getcomments/parser/tests/docs.Data.Cats": "Field documentation"
+}

@@ -1,0 +1,6 @@
+{
+  "github.com/a-h/rest/getcomments/parser/tests/functiontypes.Data": "Data should be documented.",
+  "github.com/a-h/rest/getcomments/parser/tests/functiontypes.Data.A": "The function here could be ignored.",
+  "github.com/a-h/rest/getcomments/parser/tests/functiontypes.Data.B": "As could this.",
+  "github.com/a-h/rest/getcomments/parser/tests/functiontypes.FuncType": "No need to document this."
+}
