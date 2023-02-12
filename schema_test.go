@@ -107,6 +107,29 @@ type OK struct {
 	OK bool `json:"ok"`
 }
 
+type StringEnum string
+
+const (
+	StringEnumA StringEnum = "A"
+	StringEnumB StringEnum = "B"
+	StringEnumC StringEnum = "B"
+)
+
+type IntEnum int64
+
+const (
+	IntEnum1 IntEnum = 1
+	IntEnum2 IntEnum = 2
+	IntEnum3 IntEnum = 3
+)
+
+type WithEnums struct {
+	S  StringEnum   `json:"s"`
+	SS []StringEnum `json:"ss"`
+	I  IntEnum      `json:"i"`
+	V  string       `json:"v"`
+}
+
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -211,6 +234,17 @@ func TestSchema(t *testing.T) {
 				api.Connect("/connect").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
 				api.Options("/options").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
 				api.Trace("/trace").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
+				return
+			},
+		},
+		{
+			name: "enums.yaml",
+			setup: func(api *rest.API) (err error) {
+				// Register the enums and values.
+				api.RegisterModel(rest.ModelOf[StringEnum](), rest.WithEnumValues(StringEnumA, StringEnumB, StringEnumC))
+				api.RegisterModel(rest.ModelOf[IntEnum](), rest.WithEnumValues(IntEnum1, IntEnum2, IntEnum3))
+
+				api.Get("/get").HasResponseModel(http.StatusOK, rest.ModelOf[WithEnums]())
 				return
 			},
 		},

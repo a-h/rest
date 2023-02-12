@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"golang.org/x/exp/constraints"
 )
 
 var allMethods = []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
@@ -167,6 +168,21 @@ func WithDescription(desc string) ModelOpts {
 	}
 }
 
+func WithEnumValues[T ~string | constraints.Integer](values ...T) ModelOpts {
+	return func(s *openapi3.Schema) {
+		if len(values) == 0 {
+			return
+		}
+		s.Type = openapi3.TypeString
+		if reflect.TypeOf(values[0]).Kind() != reflect.String {
+			s.Type = openapi3.TypeInteger
+		}
+		for _, v := range values {
+			s.Enum = append(s.Enum, v)
+		}
+	}
+}
+
 func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, schema *openapi3.Schema, err error) {
 	// Get the name.
 	t := model.Type
@@ -180,8 +196,8 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 
 	// It's known, but not in the schemaset yet.
 	if schema, ok = api.KnownTypes[t]; ok {
-		// Only objects need to be references.
-		if schema.Type == openapi3.TypeObject {
+		// Objects, enums, need to be references.
+		if shouldBeReferenced(schema) {
 			api.models[name] = schema
 		}
 		return name, schema, nil
@@ -237,13 +253,14 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 				}
 				continue
 			}
-			if fieldSchema.Type == openapi3.TypeObject {
+			// Use a reference if it's an object or enum etc.
+			if shouldBeReferenced(fieldSchema) {
 				schema.Properties[fieldName] = getSchemaReference(fieldSchemaName)
 				continue
 			}
+			// Otherwise use it directly.
 			schema.Properties[fieldName] = openapi3.NewSchemaRef("", fieldSchema)
 		}
-		api.models[name] = schema
 	}
 
 	if schema == nil {
@@ -254,7 +271,22 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 		opt(schema)
 	}
 
+	// After all processing, register the type if required.
+	if shouldBeReferenced(schema) {
+		api.models[name] = schema
+	}
+
 	return
+}
+
+func shouldBeReferenced(schema *openapi3.Schema) bool {
+	if schema.Type == openapi3.TypeObject {
+		return true
+	}
+	if len(schema.Enum) > 0 {
+		return true
+	}
+	return false
 }
 
 var normalizer = strings.NewReplacer("/", "_", ".", "_")

@@ -1,0 +1,44 @@
+openapi: 3.0.0
+components:
+  schemas:
+    IntEnum:
+      type: integer
+      enum:
+      - 1
+      - 2
+      - 3
+    StringEnum:
+      type: string
+      enum:
+      - A
+      - B
+      - B
+    WithEnums:
+      type: object
+      properties:
+        i:
+          $ref: '#/components/schemas/IntEnum'
+        s:
+          $ref: '#/components/schemas/StringEnum'
+        ss:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/StringEnum'
+        v:
+          type: string
+info:
+  title: enums.yaml
+  version: 0.0.0
+paths:
+  /get:
+    get:
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WithEnums'
+        default:
+          description: ""
