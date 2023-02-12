@@ -16,7 +16,7 @@ import (
 	"github.com/a-h/rest/chiadapter"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
-	"github.com/google/go-cmp/cmp"
+	"github.com/wI2L/jsondiff"
 	"gopkg.in/yaml.v2"
 )
 
@@ -266,7 +266,7 @@ func TestSchema(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			var expected, actual map[string]interface{}
+			var expected, actual []byte
 
 			// Load test file.
 			expectedYAML, err := testFiles.ReadFile("tests/" + test.name)
@@ -275,24 +275,20 @@ func TestSchema(t *testing.T) {
 			}
 
 			var wg sync.WaitGroup
-			wg.Add(3)
-			errs := make([]error, 3)
+			wg.Add(2)
+			errs := make([]error, 2)
 
 			// Validate the test file.
 			go func() {
 				defer wg.Done()
-				_, err = openapi3.NewLoader().LoadFromData(expectedYAML)
+				expectedSpec, err := openapi3.NewLoader().LoadFromData(expectedYAML)
 				if err != nil {
 					errs[0] = fmt.Errorf("error in expected YAML: %w", err)
+					return
 				}
-			}()
-
-			// Load expected YAML.
-			go func() {
-				defer wg.Done()
-				err = yaml.Unmarshal(expectedYAML, &expected)
+				expected, err = json.Marshal(expectedSpec)
 				if err != nil {
-					errs[1] = fmt.Errorf("could not unmarshal expected YAML: %w", err)
+					errs[0] = fmt.Errorf("error converting expected spec to JSON: %w", err)
 				}
 			}()
 
@@ -311,14 +307,10 @@ func TestSchema(t *testing.T) {
 				}
 				// Use JSON, because kin-openapi doesn't customise the YAML output.
 				// For example, AdditionalProperties only has a MarshalJSON capability.
-				actualJSON, err := json.Marshal(spec)
+				actual, err = json.Marshal(spec)
 				if err != nil {
-					errs[2] = fmt.Errorf("could not marshal actual to YAML: %w", err)
+					errs[1] = fmt.Errorf("could not marshal actual to JSON: %w", err)
 					return
-				}
-				err = yaml.Unmarshal(actualJSON, &actual)
-				if err != nil {
-					errs[2] = fmt.Errorf("could not unmarshal actual YAML: %w", err)
 				}
 			}()
 
@@ -335,7 +327,11 @@ func TestSchema(t *testing.T) {
 			}
 
 			// Compare the JSON marshalled output to ignore unexported fields and internal state.
-			if diff := cmp.Diff(expected, actual); diff != "" {
+			diff, err := jsondiff.CompareJSON(expected, actual)
+			if err != nil {
+				t.Fatalf("failed to compare: %v", err)
+			}
+			if len(diff) > 0 {
 				t.Error(diff)
 				d, err := yaml.Marshal(actual)
 				if err != nil {
