@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -118,15 +117,11 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 		spec.Paths[string(pattern)] = path
 	}
 
-	data, err := spec.MarshalJSON()
-	if err != nil {
-		return spec, fmt.Errorf("failed to marshal spec to/from JSON: %w", err)
+	loader := openapi3.NewLoader()
+	if err = loader.ResolveRefsIn(spec, nil); err != nil {
+		return spec, fmt.Errorf("failed to resolve, due to external references: %w", err)
 	}
-	spec, err = openapi3.NewLoader().LoadFromData(data)
-	if err != nil {
-		return spec, fmt.Errorf("failed to load spec to/from JSON: %w", err)
-	}
-	if err = spec.Validate(context.Background()); err != nil {
+	if err = spec.Validate(loader.Context); err != nil {
 		return spec, fmt.Errorf("failed validation: %w", err)
 	}
 
