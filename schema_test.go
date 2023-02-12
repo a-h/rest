@@ -278,7 +278,8 @@ func TestSchema(t *testing.T) {
 				// Load test file.
 				expectedYAML, err := testFiles.ReadFile("tests/" + test.name)
 				if err != nil {
-					t.Fatalf("could not read file %q: %v", test.name, err)
+					errs[0] = fmt.Errorf("could not read file %q: %v", test.name, err)
+					return
 				}
 				expectedSpec, err := openapi3.NewLoader().LoadFromData(expectedYAML)
 				if err != nil {
