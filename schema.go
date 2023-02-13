@@ -280,7 +280,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 			}
 			ref := getSchemaReferenceOrValue(fieldSchemaName, fieldSchema)
 			if ref.Value != nil {
-				if ref.Value.Description, err = api.getTypeFieldComment(t.PkgPath(), t.Name(), fieldName); err != nil {
+				if ref.Value.Description, err = api.getTypeFieldComment(t.PkgPath(), t.Name(), f.Name); err != nil {
 					return name, schema, fmt.Errorf("failed to get comments for field %q in type %q: %w", fieldName, name, err)
 				}
 			}
@@ -306,14 +306,14 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 }
 
 func (api *API) getCommentsForPackage(pkg string) (pkgComments map[string]string, err error) {
-	if pkgComments, loaded := api.comments[pkg]; loaded {
+	if pkgComments, loaded := api.Comments[pkg]; loaded {
 		return pkgComments, nil
 	}
 	pkgComments, err = parser.Get(pkg)
 	if err != nil {
 		return
 	}
-	api.comments[pkg] = pkgComments
+	api.Comments[pkg] = pkgComments
 	return
 }
 

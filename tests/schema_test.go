@@ -87,7 +87,10 @@ type WithEmbeddedStructs struct {
 }
 
 type WithNameStructTags struct {
-	Name string `json:"name"`
+	// FirstName of something.
+	FirstName string `json:"firstName"`
+	// LastName of something.
+	LastName string
 }
 
 type KnownTypes struct {

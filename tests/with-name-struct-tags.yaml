@@ -4,7 +4,11 @@ components:
     WithNameStructTags:
       type: object
       properties:
-        name:
+        firstName:
+          description: FirstName of something.
+          type: string
+        LastName:
+          description: LastName of something.
           type: string
 info:
   title: with-name-struct-tags.yaml
