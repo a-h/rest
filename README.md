@@ -4,7 +4,7 @@ Document a REST API with an OpenAPI 3.0 specification.
 
 * Code, not configuration.
 * No magic comments, tags, or decorators.
-* Framework agnostic.
+* Use with or without a Go web framework.
 * Populates schema automatically using reflection.
 
 ## Why would I want to use this?
@@ -99,7 +99,6 @@ fmt.Println("Visit http://localhost:8080/swagger-ui to see API definitions")
 fmt.Println("Listening on :8080...")
 http.ListenAndServe(":8080", router)
 ```
-
 
 ## Tasks
 
