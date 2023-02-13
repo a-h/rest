@@ -39,16 +39,17 @@ func main() {
 		HasResponseModel(http.StatusOK, rest.ModelOf[post.TopicPostResponse]()).
 		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
 
-	api.ConfigureSpec(func(spec *openapi3.T) {
-		spec.Info.Version = "v1.0.0"
-		spec.Info.Description = "Messages API"
-	})
-
-	// Attach the swagger UI definition to your router.
+		// Create the spec.
 	spec, err := api.Spec()
 	if err != nil {
 		log.Fatalf("failed to create spec: %v", err)
 	}
+
+	// Apply any global customisation.
+	spec.Info.Version = "v1.0.0."
+	spec.Info.Description = "Messages API"
+
+	// Attach the Swagger UI handler to your router.
 	ui, err := swaggerui.New(spec)
 	if err != nil {
 		log.Fatalf("failed to create swagger UI handler: %v", err)
