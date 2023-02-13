@@ -22,7 +22,8 @@ func NewAPI(name string, opts ...APIOpts) *API {
 		KnownTypes: defaultKnownTypes,
 		Routes:     make(map[Pattern]MethodToRoute),
 		// map of model name to schema.
-		models: map[string]*openapi3.Schema{},
+		models:   make(map[string]*openapi3.Schema),
+		comments: make(map[string]map[string]string),
 	}
 }
 
@@ -90,6 +91,9 @@ type API struct {
 	// configureSpec is executed after the spec is auto-generated, and can be used to
 	// adjust the OpenAPI specification.
 	configureSpec func(spec *openapi3.T)
+
+	// comments from the package. This can be cleared once the spec has been created.
+	comments map[string]map[string]string
 
 	// handler is a HTTP handler that serves up the OpenAPI specification and Swagger UI.
 	handler    http.Handler

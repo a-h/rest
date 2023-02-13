@@ -1,4 +1,4 @@
-package rest_test
+package test
 
 import (
 	"embed"
@@ -20,14 +20,16 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-//go:embed tests/*
+//go:embed *
 var testFiles embed.FS
 
 type TestRequestType struct {
 	IntField int
 }
 
+// TestResponseType description.
 type TestResponseType struct {
+	// IntField description.
 	IntField int
 }
 
@@ -45,13 +47,10 @@ type AllBasicDataTypes struct {
 	Uintptr uintptr
 	Float32 float32
 	Float64 float64
-	// Complex types are not supported by the Go JSON serializer.
-	//Complex64  complex64
-	//Complex128 complex128
-	Byte   byte
-	Rune   rune
-	String string
-	Bool   bool
+	Byte    byte
+	Rune    rune
+	String  string
+	Bool    bool
 }
 
 type AllBasicDataTypesPointers struct {
@@ -68,13 +67,10 @@ type AllBasicDataTypesPointers struct {
 	Uintptr *uintptr
 	Float32 *float32
 	Float64 *float64
-	// Complex types are not supported by the Go JSON serializer.
-	//Complex64  *complex64
-	//Complex128 *complex128
-	Byte   *byte
-	Rune   *rune
-	String *string
-	Bool   *bool
+	Byte    *byte
+	Rune    *rune
+	String  *string
+	Bool    *bool
 }
 
 type EmbeddedStructA struct {
@@ -276,7 +272,7 @@ func TestSchema(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				// Load test file.
-				expectedYAML, err := testFiles.ReadFile("tests/" + test.name)
+				expectedYAML, err := testFiles.ReadFile(test.name)
 				if err != nil {
 					errs[0] = fmt.Errorf("could not read file %q: %v", test.name, err)
 					return
@@ -319,7 +315,7 @@ func TestSchema(t *testing.T) {
 			// Compare the JSON marshalled output to ignore unexported fields and internal state.
 			if diff := cmp.Diff(expected, actual); diff != "" {
 				t.Error(diff)
-				t.Error(string(actual))
+				t.Error("\n\n" + string(actual))
 			}
 		})
 	}

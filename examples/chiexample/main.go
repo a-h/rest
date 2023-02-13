@@ -7,40 +7,17 @@ import (
 	"github.com/a-h/respond"
 	"github.com/a-h/rest"
 	"github.com/a-h/rest/chiadapter"
+	"github.com/a-h/rest/examples/chiexample/models"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 )
-
-type Topic struct {
-	Namespace string `json:"namespace"`
-	Topic     string `json:"topic"`
-	Private   bool   `json:"private"`
-	ViewCount int64  `json:"viewCount"`
-}
-
-type TopicsPostRequest struct {
-	Topic
-}
-
-type TopicsPostResponse struct {
-	ID string `json:"id"`
-}
-
-type TopicsGetResponse struct {
-	Topics []TopicRecord `json:"topics"`
-}
-
-type TopicRecord struct {
-	ID string `json:"id"`
-	Topic
-}
 
 func main() {
 	// Define routes in any router.
 	router := chi.NewRouter()
 
 	router.Get("/topic/{id}", func(w http.ResponseWriter, r *http.Request) {
-		resp := Topic{
+		resp := models.Topic{
 			Namespace: "example",
 			Topic:     "topic",
 			Private:   false,
@@ -50,11 +27,11 @@ func main() {
 	})
 
 	router.Get("/topics", func(w http.ResponseWriter, r *http.Request) {
-		resp := TopicsGetResponse{
-			Topics: []TopicRecord{
+		resp := models.TopicsGetResponse{
+			Topics: []models.TopicRecord{
 				{
 					ID: "testId",
-					Topic: Topic{
+					Topic: models.Topic{
 						Namespace: "example",
 						Topic:     "topic",
 						Private:   false,
@@ -67,7 +44,7 @@ func main() {
 	})
 
 	router.Post("/topics", func(w http.ResponseWriter, r *http.Request) {
-		resp := TopicsPostResponse{ID: "123"}
+		resp := models.TopicsPostResponse{ID: "123"}
 		respond.WithJSON(w, resp, http.StatusOK)
 	})
 
@@ -90,16 +67,16 @@ func main() {
 
 	// Document the routes.
 	api.Get("/topic/{id}").
-		HasResponseModel(http.StatusOK, rest.ModelOf[TopicsGetResponse]()).
+		HasResponseModel(http.StatusOK, rest.ModelOf[models.TopicsGetResponse]()).
 		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
 
 	api.Get("/topics").
-		HasResponseModel(http.StatusOK, rest.ModelOf[TopicsGetResponse]()).
+		HasResponseModel(http.StatusOK, rest.ModelOf[models.TopicsGetResponse]()).
 		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
 
 	api.Post("/topics").
-		HasRequestModel(rest.ModelOf[TopicsPostRequest]()).
-		HasResponseModel(http.StatusOK, rest.ModelOf[TopicsPostResponse]()).
+		HasRequestModel(rest.ModelOf[models.TopicsPostRequest]()).
+		HasResponseModel(http.StatusOK, rest.ModelOf[models.TopicsPostResponse]()).
 		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
 
 	api.ConfigureSpec(func(spec *openapi3.T) {

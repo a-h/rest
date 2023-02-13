@@ -11,7 +11,8 @@ import (
 
 func Get(packageName string) (m map[string]string, err error) {
 	config := &packages.Config{
-		Mode: packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax,
+		Mode:  packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax,
+		Tests: true,
 	}
 	pkgs, err := packages.Load(config, packageName)
 	if err != nil {

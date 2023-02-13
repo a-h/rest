@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/a-h/rest/getcomments/parser"
 	"github.com/getkin/kin-openapi/openapi3"
 	"golang.org/x/exp/constraints"
 )
@@ -245,6 +246,9 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 		schema.AdditionalProperties.Schema = getSchemaReferenceOrValue(elementName, elementSchema)
 	case reflect.Struct:
 		schema = openapi3.NewObjectSchema()
+		if schema.Description, err = api.getTypeComment(t.PkgPath(), t.Name()); err != nil {
+			return name, schema, fmt.Errorf("failed to get comments for type %q: %w", name, err)
+		}
 		schema.Properties = make(openapi3.Schemas)
 		for i := 0; i < t.NumField(); i++ {
 			f := t.Field(i)
@@ -260,7 +264,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 			_, alreadyExists := api.models[api.getModelName(f.Type)]
 			fieldSchemaName, fieldSchema, err := api.RegisterModel(ModelFromType(f.Type))
 			if err != nil {
-				return fieldName, schema, fmt.Errorf("error getting schema for type %q, field %q, failed to get schema for embedded type %q: %w", t, fieldName, f.Type, err)
+				return name, schema, fmt.Errorf("error getting schema for type %q, field %q, failed to get schema for embedded type %q: %w", t, fieldName, f.Type, err)
 			}
 			if f.Anonymous {
 				// It's an anonymous type, no need for a reference to it,
@@ -274,7 +278,13 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 				}
 				continue
 			}
-			schema.Properties[fieldName] = getSchemaReferenceOrValue(fieldSchemaName, fieldSchema)
+			ref := getSchemaReferenceOrValue(fieldSchemaName, fieldSchema)
+			if ref.Value != nil {
+				if ref.Value.Description, err = api.getTypeFieldComment(t.PkgPath(), t.Name(), fieldName); err != nil {
+					return name, schema, fmt.Errorf("failed to get comments for field %q in type %q: %w", fieldName, name, err)
+				}
+			}
+			schema.Properties[fieldName] = ref
 		}
 	}
 
@@ -293,6 +303,34 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 	}
 
 	return
+}
+
+func (api *API) getCommentsForPackage(pkg string) (pkgComments map[string]string, err error) {
+	if pkgComments, loaded := api.comments[pkg]; loaded {
+		return pkgComments, nil
+	}
+	pkgComments, err = parser.Get(pkg)
+	if err != nil {
+		return
+	}
+	api.comments[pkg] = pkgComments
+	return
+}
+
+func (api *API) getTypeComment(pkg string, name string) (comment string, err error) {
+	pkgComments, err := api.getCommentsForPackage(pkg)
+	if err != nil {
+		return
+	}
+	return pkgComments[pkg+"."+name], nil
+}
+
+func (api *API) getTypeFieldComment(pkg string, name string, field string) (comment string, err error) {
+	pkgComments, err := api.getCommentsForPackage(pkg)
+	if err != nil {
+		return
+	}
+	return pkgComments[pkg+"."+name+"."+field], nil
 }
 
 func shouldBeReferenced(schema *openapi3.Schema) bool {
