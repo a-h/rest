@@ -2,7 +2,6 @@ package rest
 
 import (
 	"fmt"
-	"net/http"
 	"reflect"
 	"sort"
 	"strings"
@@ -11,8 +10,6 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"golang.org/x/exp/constraints"
 )
-
-var allMethods = []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace}
 
 func newSpec(name string) *openapi3.T {
 	return &openapi3.T{
@@ -46,17 +43,11 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 	// Add all the routes.
 	for pattern, methodToRoute := range api.Routes {
 		path := &openapi3.PathItem{}
-		methodToOperation := make(map[string]*openapi3.Operation)
-		for _, method := range allMethods {
-			route, hasMethod := methodToRoute[Method(method)]
-			if !hasMethod {
-				continue
-			}
+		for method, route := range methodToRoute {
 			op := &openapi3.Operation{}
 
 			// Add the route params.
-			pathKeys := getSortedKeys(route.Params.Path)
-			for _, k := range pathKeys {
+			for _, k := range getSortedKeys(route.Params.Path) {
 				v := route.Params.Path[k]
 				ps := openapi3.NewStringSchema()
 				if v.Regexp != "" {
@@ -75,14 +66,11 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 					return spec, err
 				}
 				op.RequestBody = &openapi3.RequestBodyRef{
-					Value: &openapi3.RequestBody{
-						Description: "",
-						Content: map[string]*openapi3.MediaType{
-							"application/json": {
-								Schema: getSchemaReferenceOrValue(name, schema),
-							},
+					Value: openapi3.NewRequestBody().WithContent(map[string]*openapi3.MediaType{
+						"application/json": {
+							Schema: getSchemaReferenceOrValue(name, schema),
 						},
-					},
+					}),
 				}
 			}
 
@@ -92,18 +80,18 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 				if err != nil {
 					return spec, err
 				}
-				op.AddResponse(status, &openapi3.Response{
-					Description: pointerTo(""),
-					Content: map[string]*openapi3.MediaType{
+				resp := openapi3.NewResponse().
+					WithDescription("").
+					WithContent(map[string]*openapi3.MediaType{
 						"application/json": {
 							Schema: getSchemaReferenceOrValue(name, schema),
 						},
-					},
-				})
+					})
+				op.AddResponse(status, resp)
 			}
 
 			// Register the method.
-			methodToOperation[method] = op
+			path.SetOperation(string(method), op)
 		}
 
 		// Populate the OpenAPI schemas from the models.
@@ -111,10 +99,6 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 			spec.Components.Schemas[name] = openapi3.NewSchemaRef("", schema)
 		}
 
-		// Register the routes.
-		for method, operation := range methodToOperation {
-			path.SetOperation(method, operation)
-		}
 		spec.Paths[string(pattern)] = path
 	}
 
@@ -127,15 +111,6 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 	}
 
 	return spec, err
-}
-
-func pointerTo[T any](v T) *T {
-	return &v
-}
-
-func typeOf[T any]() reflect.Type {
-	var v T
-	return reflect.TypeOf(v)
 }
 
 func (api *API) getModelName(t reflect.Type) string {
@@ -161,20 +136,24 @@ func getSchemaReferenceOrValue(name string, schema *openapi3.Schema) *openapi3.S
 	return openapi3.NewSchemaRef("", schema)
 }
 
+// ModelOpts defines options that can be set when registering a model.
 type ModelOpts func(s *openapi3.Schema)
 
+// WithNullable sets the nullable field to true.
 func WithNullable() ModelOpts {
 	return func(s *openapi3.Schema) {
 		s.Nullable = true
 	}
 }
 
+// WithDescription sets the description field on the schema.
 func WithDescription(desc string) ModelOpts {
 	return func(s *openapi3.Schema) {
 		s.Description = desc
 	}
 }
 
+// WithEnumValues sets the property to be an enum value with the specific values.
 func WithEnumValues[T ~string | constraints.Integer](values ...T) ModelOpts {
 	return func(s *openapi3.Schema) {
 		if len(values) == 0 {
@@ -190,6 +169,8 @@ func WithEnumValues[T ~string | constraints.Integer](values ...T) ModelOpts {
 	}
 }
 
+// RegisterModel allows a model to be registered manually so that additional configuration can be applied.
+// The schema returned can be modified as required.
 func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, schema *openapi3.Schema, err error) {
 	// Get the name.
 	t := model.Type
@@ -215,7 +196,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 	var elementSchema *openapi3.Schema
 	switch t.Kind() {
 	case reflect.Slice, reflect.Array:
-		elementName, elementSchema, err = api.RegisterModel(ModelFromType(t.Elem()))
+		elementName, elementSchema, err = api.RegisterModel(modelFromType(t.Elem()))
 		if err != nil {
 			return name, schema, fmt.Errorf("error getting schema of slice element %v: %w", t.Elem(), err)
 		}
@@ -230,7 +211,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 	case reflect.Bool:
 		schema = openapi3.NewBoolSchema()
 	case reflect.Pointer:
-		name, schema, err = api.RegisterModel(ModelFromType(t.Elem()), WithNullable())
+		name, schema, err = api.RegisterModel(modelFromType(t.Elem()), WithNullable())
 	case reflect.Map:
 		// Check that the key is a string.
 		if t.Key().Kind() != reflect.String {
@@ -238,7 +219,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 		}
 
 		// Get the element schema.
-		elementName, elementSchema, err = api.RegisterModel(ModelFromType(t.Elem()))
+		elementName, elementSchema, err = api.RegisterModel(modelFromType(t.Elem()))
 		if err != nil {
 			return name, schema, fmt.Errorf("error getting schema of map value element %v: %w", t.Elem(), err)
 		}
@@ -262,7 +243,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 			}
 			// If the model doesn't exist.
 			_, alreadyExists := api.models[api.getModelName(f.Type)]
-			fieldSchemaName, fieldSchema, err := api.RegisterModel(ModelFromType(f.Type))
+			fieldSchemaName, fieldSchema, err := api.RegisterModel(modelFromType(f.Type))
 			if err != nil {
 				return name, schema, fmt.Errorf("error getting schema for type %q, field %q, failed to get schema for embedded type %q: %w", t, fieldName, f.Type, err)
 			}
@@ -306,14 +287,14 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 }
 
 func (api *API) getCommentsForPackage(pkg string) (pkgComments map[string]string, err error) {
-	if pkgComments, loaded := api.Comments[pkg]; loaded {
+	if pkgComments, loaded := api.comments[pkg]; loaded {
 		return pkgComments, nil
 	}
 	pkgComments, err = parser.Get(pkg)
 	if err != nil {
 		return
 	}
-	api.Comments[pkg] = pkgComments
+	api.comments[pkg] = pkgComments
 	return
 }
 

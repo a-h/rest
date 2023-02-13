@@ -16,8 +16,8 @@ func Merge(target *rest.API, src chi.Router) error {
 			return err
 		}
 		r := rest.Route{
-			Method:  method,
-			Pattern: route,
+			Method:  rest.Method(method),
+			Pattern: rest.Pattern(route),
 			Params:  params,
 		}
 		target.Merge(r)
