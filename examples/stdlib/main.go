@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/a-h/respond"
 	"github.com/a-h/rest"
 	"github.com/a-h/rest/examples/stdlib/handlers/topic/post"
 	"github.com/a-h/rest/examples/stdlib/handlers/topics/get"
+	"github.com/a-h/rest/swaggerui"
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
@@ -43,11 +45,20 @@ func main() {
 	})
 
 	// Attach the swagger UI definition to your router.
-	router.Handle("/swagger-ui", api)
+	spec, err := api.Spec()
+	if err != nil {
+		log.Fatalf("failed to create spec: %v", err)
+	}
+	ui, err := swaggerui.New(spec)
+	if err != nil {
+		log.Fatalf("failed to create swagger UI handler: %v", err)
+	}
+	router.Handle("/swagger-ui", ui)
+	router.Handle("/swagger-ui/", ui)
 
 	// And start listening.
 	fmt.Println("Listening on :8080...")
 	fmt.Println("Visit http://localhost:8080/swagger-ui to see API definitions")
 	fmt.Println("Listening on :8080...")
-	http.ListenAndServe(":8080", api)
+	http.ListenAndServe(":8080", router)
 }
