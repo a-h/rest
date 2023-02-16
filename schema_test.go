@@ -1,10 +1,9 @@
-package test
+package rest
 
 import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"sync"
 	"testing"
@@ -12,15 +11,12 @@ import (
 
 	_ "embed"
 
-	"github.com/a-h/rest"
-	"github.com/a-h/rest/chiadapter"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/go-chi/chi/v5"
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"
 )
 
-//go:embed *
+//go:embed tests/*
 var testFiles embed.FS
 
 type TestRequestType struct {
@@ -139,125 +135,120 @@ type WithMaps struct {
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
-		setup func(api *rest.API) error
+		setup func(api *API) error
 	}{
 		{
 			name:  "test000.yaml",
-			setup: func(api *rest.API) error { return nil },
+			setup: func(api *API) error { return nil },
 		},
 		{
 			name: "test001.yaml",
-			setup: func(api *rest.API) error {
+			setup: func(api *API) error {
 				api.Post("/test").
-					HasRequestModel(rest.ModelOf[TestRequestType]()).
-					HasResponseModel(http.StatusOK, rest.ModelOf[TestResponseType]())
+					HasRequestModel(ModelOf[TestRequestType]()).
+					HasResponseModel(http.StatusOK, ModelOf[TestResponseType]())
 				return nil
 			},
 		},
 		{
 			name: "basic-data-types.yaml",
-			setup: func(api *rest.API) error {
+			setup: func(api *API) error {
 				api.Post("/test").
-					HasRequestModel(rest.ModelOf[AllBasicDataTypes]()).
-					HasResponseModel(http.StatusOK, rest.ModelOf[AllBasicDataTypes]())
+					HasRequestModel(ModelOf[AllBasicDataTypes]()).
+					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypes]())
 				return nil
 			},
 		},
 		{
 			name: "basic-data-types-pointers.yaml",
-			setup: func(api *rest.API) error {
+			setup: func(api *API) error {
 				api.Post("/test").
-					HasRequestModel(rest.ModelOf[AllBasicDataTypesPointers]()).
-					HasResponseModel(http.StatusOK, rest.ModelOf[AllBasicDataTypesPointers]())
+					HasRequestModel(ModelOf[AllBasicDataTypesPointers]()).
+					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypesPointers]())
 				return nil
 			},
 		},
 		{
 			name: "anonymous-type.yaml",
-			setup: func(api *rest.API) error {
+			setup: func(api *API) error {
 				api.Post("/test").
-					HasRequestModel(rest.ModelOf[struct{ A string }]()).
-					HasResponseModel(http.StatusOK, rest.ModelOf[struct{ B string }]())
+					HasRequestModel(ModelOf[struct{ A string }]()).
+					HasResponseModel(http.StatusOK, ModelOf[struct{ B string }]())
 				return nil
 			},
 		},
 		{
 			name: "embedded-structs.yaml",
-			setup: func(api *rest.API) error {
+			setup: func(api *API) error {
 				api.Get("/embedded").
-					HasResponseModel(http.StatusOK, rest.ModelOf[EmbeddedStructA]())
+					HasResponseModel(http.StatusOK, ModelOf[EmbeddedStructA]())
 				api.Post("/test").
-					HasRequestModel(rest.ModelOf[WithEmbeddedStructs]()).
-					HasResponseModel(http.StatusOK, rest.ModelOf[WithEmbeddedStructs]())
+					HasRequestModel(ModelOf[WithEmbeddedStructs]()).
+					HasResponseModel(http.StatusOK, ModelOf[WithEmbeddedStructs]())
 				return nil
 			},
 		},
 		{
 			name: "with-name-struct-tags.yaml",
-			setup: func(api *rest.API) error {
+			setup: func(api *API) error {
 				api.Post("/test").
-					HasRequestModel(rest.ModelOf[WithNameStructTags]()).
-					HasResponseModel(http.StatusOK, rest.ModelOf[WithNameStructTags]())
+					HasRequestModel(ModelOf[WithNameStructTags]()).
+					HasResponseModel(http.StatusOK, ModelOf[WithNameStructTags]())
 				return nil
 			},
 		},
 		{
 			name: "known-types.yaml",
-			setup: func(api *rest.API) error {
+			setup: func(api *API) error {
 				api.Route(http.MethodGet, "/test").
-					HasResponseModel(http.StatusOK, rest.ModelOf[KnownTypes]())
+					HasResponseModel(http.StatusOK, ModelOf[KnownTypes]())
 				return nil
 			},
 		},
 		{
-			name: "chi-route-params.yaml",
-			setup: func(api *rest.API) (err error) {
-				router := chi.NewRouter()
-				router.Method(http.MethodGet, `/organisation/{orgId:\d+}/user/{userId}`, testHandler)
-
-				// Automatically get the URL params.
-				err = chiadapter.Merge(api, router)
-				if err != nil {
-					return fmt.Errorf("failed to merge: %w", err)
-				}
-
-				// Manually configure the responses.
-				api.Route(http.MethodGet, `/organisation/{orgId:\d+}/user/{userId}`).
-					HasResponseModel(http.StatusOK, rest.ModelOf[User]())
-
-				return
-			},
-		},
-		{
 			name: "all-methods.yaml",
-			setup: func(api *rest.API) (err error) {
-				api.Get("/get").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
-				api.Head("/head").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
-				api.Post("/post").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
-				api.Put("/put").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
-				api.Patch("/patch").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
-				api.Delete("/delete").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
-				api.Connect("/connect").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
-				api.Options("/options").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
-				api.Trace("/trace").HasResponseModel(http.StatusOK, rest.ModelOf[OK]())
+			setup: func(api *API) (err error) {
+				api.Get("/get").HasResponseModel(http.StatusOK, ModelOf[OK]())
+				api.Head("/head").HasResponseModel(http.StatusOK, ModelOf[OK]())
+				api.Post("/post").HasResponseModel(http.StatusOK, ModelOf[OK]())
+				api.Put("/put").HasResponseModel(http.StatusOK, ModelOf[OK]())
+				api.Patch("/patch").HasResponseModel(http.StatusOK, ModelOf[OK]())
+				api.Delete("/delete").HasResponseModel(http.StatusOK, ModelOf[OK]())
+				api.Connect("/connect").HasResponseModel(http.StatusOK, ModelOf[OK]())
+				api.Options("/options").HasResponseModel(http.StatusOK, ModelOf[OK]())
+				api.Trace("/trace").HasResponseModel(http.StatusOK, ModelOf[OK]())
 				return
 			},
 		},
 		{
 			name: "enums.yaml",
-			setup: func(api *rest.API) (err error) {
+			setup: func(api *API) (err error) {
 				// Register the enums and values.
-				api.RegisterModel(rest.ModelOf[StringEnum](), rest.WithEnumValues(StringEnumA, StringEnumB, StringEnumC))
-				api.RegisterModel(rest.ModelOf[IntEnum](), rest.WithEnumValues(IntEnum1, IntEnum2, IntEnum3))
+				api.RegisterModel(ModelOf[StringEnum](), WithEnumValues(StringEnumA, StringEnumB, StringEnumC))
+				api.RegisterModel(ModelOf[IntEnum](), WithEnumValues(IntEnum1, IntEnum2, IntEnum3))
 
-				api.Get("/get").HasResponseModel(http.StatusOK, rest.ModelOf[WithEnums]())
+				api.Get("/get").HasResponseModel(http.StatusOK, ModelOf[WithEnums]())
 				return
 			},
 		},
 		{
 			name: "with-maps.yaml",
-			setup: func(api *rest.API) (err error) {
-				api.Get("/get").HasResponseModel(http.StatusOK, rest.ModelOf[WithMaps]())
+			setup: func(api *API) (err error) {
+				api.Get("/get").HasResponseModel(http.StatusOK, ModelOf[WithMaps]())
+				return
+			},
+		},
+		{
+			name: "route-params.yaml",
+			setup: func(api *API) (err error) {
+				api.Get(`/organisation/{orgId:\d+}/user/{userId}`).
+					HasPathParameter("orgId", PathParam{
+						Regexp: `\d+`,
+					}).
+					HasPathParameter("userId", PathParam{
+						Description: "User ID",
+					}).
+					HasResponseModel(http.StatusOK, ModelOf[User]())
 				return
 			},
 		},
@@ -275,7 +266,7 @@ func TestSchema(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				// Load test file.
-				expectedYAML, err := testFiles.ReadFile(test.name)
+				expectedYAML, err := testFiles.ReadFile("tests/" + test.name)
 				if err != nil {
 					errs[0] = fmt.Errorf("could not read file %q: %v", test.name, err)
 					return
@@ -291,7 +282,7 @@ func TestSchema(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				// Create the API.
-				api := rest.NewAPI(test.name)
+				api := NewAPI(test.name)
 				api.StripPkgPaths = []string{"github.com/a-h/rest"}
 				// Configure it.
 				test.setup(api)
@@ -339,7 +330,3 @@ func specToYAML(spec *openapi3.T) (out []byte, err error) {
 	}
 	return yaml.Marshal(m)
 }
-
-var testHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "Hello, World")
-})
