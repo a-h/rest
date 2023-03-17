@@ -39,7 +39,7 @@ func main() {
 		HasResponseModel(http.StatusOK, rest.ModelOf[post.TopicPostResponse]()).
 		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
 
-		// Create the spec.
+	// Create the spec.
 	spec, err := api.Spec()
 	if err != nil {
 		log.Fatalf("failed to create spec: %v", err)
