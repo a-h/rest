@@ -19,6 +19,7 @@ info:
 paths:
   /test:
     post:
+      description: "Test request type description"
       requestBody:
         content:
           application/json:
@@ -33,3 +34,5 @@ paths:
           description: ""
         default:
           description: ""
+      tags:
+        - TestRequest

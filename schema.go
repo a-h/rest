@@ -90,6 +90,15 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 				op.AddResponse(status, resp)
 			}
 
+			// Handle tags.
+			op.Tags = append(op.Tags, route.Tags...)
+
+			// Handle OperationID.
+			op.OperationID = route.OperationID
+
+			// Handle description.
+			op.Description = route.Description
+
 			// Register the method.
 			path.SetOperation(string(method), op)
 		}

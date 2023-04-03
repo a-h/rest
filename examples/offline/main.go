@@ -28,7 +28,10 @@ func main() {
 			Regexp:      `\d+`,
 		}).
 		HasResponseModel(http.StatusOK, rest.ModelOf[models.Topic]()).
-		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
+		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]()).
+		HasTags([]string{"Topic"}).
+		HasDescription("Get one topic by id").
+		HasOperationID("getOneTopic")
 
 	// Create the specification.
 	spec, err := api.Spec()

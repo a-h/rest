@@ -146,7 +146,9 @@ func TestSchema(t *testing.T) {
 			setup: func(api *API) error {
 				api.Post("/test").
 					HasRequestModel(ModelOf[TestRequestType]()).
-					HasResponseModel(http.StatusOK, ModelOf[TestResponseType]())
+					HasResponseModel(http.StatusOK, ModelOf[TestResponseType]()).
+					HasDescription("Test request type description").
+					HasTags([]string{"TestRequest"})
 				return nil
 			},
 		},
@@ -155,7 +157,10 @@ func TestSchema(t *testing.T) {
 			setup: func(api *API) error {
 				api.Post("/test").
 					HasRequestModel(ModelOf[AllBasicDataTypes]()).
-					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypes]())
+					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypes]()).
+					HasOperationID("postAllBasicDataTypes").
+					HasTags([]string{"BasicData"}).
+					HasDescription("Post all basic data types description")
 				return nil
 			},
 		},

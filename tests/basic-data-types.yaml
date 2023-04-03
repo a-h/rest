@@ -44,6 +44,8 @@ info:
 paths:
   /test:
     post:
+      operationId: "postAllBasicDataTypes"
+      description: "Post all basic data types description"
       requestBody:
         content:
           application/json:
@@ -58,3 +60,5 @@ paths:
                 $ref: '#/components/schemas/AllBasicDataTypes'
         default:
           description: ""
+      tags:
+        - BasicData

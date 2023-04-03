@@ -37,6 +37,12 @@ type Route struct {
 	Params Params
 	// Models used in the route.
 	Models Models
+	// Tags used in the route.
+	Tags []string
+	// OperationID for the route.
+	OperationID string
+	// Description for the route.
+	Description string
 }
 
 // Params is a route parameter.
@@ -232,6 +238,24 @@ func (rm *Route) HasRequestModel(request Model) *Route {
 // HasPathParameter configures a path parameter for the route.
 func (rm *Route) HasPathParameter(name string, p PathParam) *Route {
 	rm.Params.Path[name] = p
+	return rm
+}
+
+// HasTags sets the tags for the route.
+func (rm *Route) HasTags(tags []string) *Route {
+	rm.Tags = append(rm.Tags, tags...)
+	return rm
+}
+
+// HasOperationID sets the OperationID for the route.
+func (rm *Route) HasOperationID(operationID string) *Route {
+	rm.OperationID = operationID
+	return rm
+}
+
+// HasDescription sets the description for the route.
+func (rm *Route) HasDescription(description string) *Route {
+	rm.Description = description
 	return rm
 }
 
