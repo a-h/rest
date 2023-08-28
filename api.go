@@ -62,6 +62,8 @@ type PathParam struct {
 	// Regexp is a regular expression used to validate the param.
 	// An empty string means that no validation is applied.
 	Regexp string
+	// Type of the param (string, number, integer, boolean)
+	Type string
 }
 
 // QueryParam is a paramater that's used in the querystring of a URL.

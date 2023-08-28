@@ -49,7 +49,19 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 			// Add the route params.
 			for _, k := range getSortedKeys(route.Params.Path) {
 				v := route.Params.Path[k]
-				ps := openapi3.NewStringSchema()
+
+				var ps *openapi3.Schema
+				switch v.Type {
+				case "number":
+					ps = openapi3.NewFloat64Schema()
+				case "integer":
+					ps = openapi3.NewIntegerSchema()
+				case "boolean":
+					ps = openapi3.NewBoolSchema()
+				default:
+					ps = openapi3.NewStringSchema()
+				}
+
 				if v.Regexp != "" {
 					ps.WithPattern(v.Regexp)
 				}
