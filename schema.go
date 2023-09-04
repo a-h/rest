@@ -38,6 +38,23 @@ func getSortedKeys[V any](m map[string]V) (op []string) {
 	return op
 }
 
+func newPrimitiveSchema(paramType Primitive) *openapi3.Schema {
+	var schema *openapi3.Schema
+	switch paramType {
+	case PrimitiveString:
+		schema = openapi3.NewStringSchema()
+	case PrimitiveBool:
+		schema = openapi3.NewBoolSchema()
+	case PrimitiveInteger:
+		schema = openapi3.NewIntegerSchema()
+	case PrimitiveFloat64:
+		schema = openapi3.NewFloat64Schema()
+	default:
+		schema = openapi3.NewStringSchema()
+	}
+	return schema
+}
+
 func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 	spec = newSpec(api.Name)
 	// Add all the routes.
@@ -46,29 +63,37 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 		for method, route := range methodToRoute {
 			op := &openapi3.Operation{}
 
+			// Add the query params.
+			for _, k := range getSortedKeys(route.Params.Query) {
+				v := route.Params.Query[k]
+
+				qs := newPrimitiveSchema(v.Type)
+
+				queryParam := openapi3.NewQueryParameter(k).
+					WithDescription(v.Description).
+					WithSchema(qs)
+
+				queryParam.Required = v.Required
+				queryParam.AllowEmptyValue = v.AllowEmpty
+
+				op.AddParameter(queryParam)
+			}
+
 			// Add the route params.
 			for _, k := range getSortedKeys(route.Params.Path) {
 				v := route.Params.Path[k]
 
-				var ps *openapi3.Schema
-				switch v.Type {
-				case "number":
-					ps = openapi3.NewFloat64Schema()
-				case "integer":
-					ps = openapi3.NewIntegerSchema()
-				case "boolean":
-					ps = openapi3.NewBoolSchema()
-				default:
-					ps = openapi3.NewStringSchema()
-				}
+				ps := newPrimitiveSchema(v.Type)
 
 				if v.Regexp != "" {
 					ps.WithPattern(v.Regexp)
 				}
-				param := openapi3.NewPathParameter(k).
+
+				pathParam := openapi3.NewPathParameter(k).
 					WithDescription(v.Description).
 					WithSchema(ps)
-				op.AddParameter(param)
+
+				op.AddParameter(pathParam)
 			}
 
 			// Handle request types.
