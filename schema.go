@@ -50,8 +50,12 @@ func newPrimitiveSchema(paramType Primitive) *openapi3.Schema {
 	case PrimitiveFloat64:
 		schema = openapi3.NewFloat64Schema()
 	default:
-		schema = &openapi3.Schema{
-			Type: string(paramType),
+		if paramType == "" {
+			schema = openapi3.NewStringSchema()
+		} else {
+			schema = &openapi3.Schema{
+				Type: string(paramType),
+			}
 		}
 	}
 	return schema
