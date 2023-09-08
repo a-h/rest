@@ -78,13 +78,13 @@ type QueryParam struct {
 	Type Primitive
 }
 
-type Primitive int
+type Primitive string
 
 const (
-	PrimitiveString Primitive = iota
-	PrimitiveBool
-	PrimitiveInteger
-	PrimitiveFloat64
+	PrimitiveString  Primitive = "string"
+	PrimitiveBool    Primitive = "boolean"
+	PrimitiveInteger Primitive = "integer"
+	PrimitiveFloat64 Primitive = "number"
 )
 
 // MethodToRoute maps from a HTTP method to a Route.
