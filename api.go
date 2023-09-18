@@ -62,19 +62,33 @@ type PathParam struct {
 	// Regexp is a regular expression used to validate the param.
 	// An empty string means that no validation is applied.
 	Regexp string
-	// Type of the param (string, number, integer, boolean)
-	Type string
+	// Type of the param (string, number, integer, boolean).
+	Type PrimitiveType
 }
 
 // QueryParam is a paramater that's used in the querystring of a URL.
 type QueryParam struct {
 	// Description of the param.
 	Description string
+	// Regexp is a regular expression used to validate the param.
+	// An empty string means that no validation is applied.
+	Regexp string
 	// Required sets whether the querystring parameter must be present in the URL.
 	Required bool
 	// AllowEmpty sets whether the querystring parameter can be empty.
 	AllowEmpty bool
+	// Type of the param (string, number, integer, boolean).
+	Type PrimitiveType
 }
+
+type PrimitiveType string
+
+const (
+	PrimitiveTypeString  PrimitiveType = "string"
+	PrimitiveTypeBool    PrimitiveType = "boolean"
+	PrimitiveTypeInteger PrimitiveType = "integer"
+	PrimitiveTypeFloat64 PrimitiveType = "number"
+)
 
 // MethodToRoute maps from a HTTP method to a Route.
 type MethodToRoute map[Method]*Route
@@ -240,6 +254,12 @@ func (rm *Route) HasRequestModel(request Model) *Route {
 // HasPathParameter configures a path parameter for the route.
 func (rm *Route) HasPathParameter(name string, p PathParam) *Route {
 	rm.Params.Path[name] = p
+	return rm
+}
+
+// HasQueryParameter configures a query parameter for the route.
+func (rm *Route) HasQueryParameter(name string, q QueryParam) *Route {
+	rm.Params.Query[name] = q
 	return rm
 }
 

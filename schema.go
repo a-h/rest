@@ -38,6 +38,25 @@ func getSortedKeys[V any](m map[string]V) (op []string) {
 	return op
 }
 
+func newPrimitiveSchema(paramType PrimitiveType) *openapi3.Schema {
+	switch paramType {
+	case PrimitiveTypeString:
+		return openapi3.NewStringSchema()
+	case PrimitiveTypeBool:
+		return openapi3.NewBoolSchema()
+	case PrimitiveTypeInteger:
+		return openapi3.NewIntegerSchema()
+	case PrimitiveTypeFloat64:
+		return openapi3.NewFloat64Schema()
+	case "":
+		return openapi3.NewStringSchema()
+	default:
+		return &openapi3.Schema{
+			Type: string(paramType),
+		}
+	}
+}
+
 func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 	spec = newSpec(api.Name)
 	// Add all the routes.
@@ -46,29 +65,32 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 		for method, route := range methodToRoute {
 			op := &openapi3.Operation{}
 
+			// Add the query params.
+			for _, k := range getSortedKeys(route.Params.Query) {
+				v := route.Params.Query[k]
+
+				ps := newPrimitiveSchema(v.Type).
+					WithPattern(v.Regexp)
+				queryParam := openapi3.NewQueryParameter(k).
+					WithDescription(v.Description).
+					WithSchema(ps)
+				queryParam.Required = v.Required
+				queryParam.AllowEmptyValue = v.AllowEmpty
+
+				op.AddParameter(queryParam)
+			}
+
 			// Add the route params.
 			for _, k := range getSortedKeys(route.Params.Path) {
 				v := route.Params.Path[k]
 
-				var ps *openapi3.Schema
-				switch v.Type {
-				case "number":
-					ps = openapi3.NewFloat64Schema()
-				case "integer":
-					ps = openapi3.NewIntegerSchema()
-				case "boolean":
-					ps = openapi3.NewBoolSchema()
-				default:
-					ps = openapi3.NewStringSchema()
-				}
-
-				if v.Regexp != "" {
-					ps.WithPattern(v.Regexp)
-				}
-				param := openapi3.NewPathParameter(k).
+				ps := newPrimitiveSchema(v.Type).
+					WithPattern(v.Regexp)
+				pathParam := openapi3.NewPathParameter(k).
 					WithDescription(v.Description).
 					WithSchema(ps)
-				op.AddParameter(param)
+
+				op.AddParameter(pathParam)
 			}
 
 			// Handle request types.
