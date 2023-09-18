@@ -1,0 +1,39 @@
+openapi: 3.0.0
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+info:
+  title: query-params.yaml
+  version: 0.0.0
+paths:
+  /users?orgId=123&orderBy=field:
+    get:
+      parameters:
+        - in: query
+          description: The field to order the results by
+          name: orderBy
+          required: false
+          schema:
+            type: string
+            pattern: field|otherField
+        - in: query
+          description: ID of the organisation
+          name: orgId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          description: ""

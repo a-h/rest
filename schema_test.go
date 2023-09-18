@@ -257,6 +257,25 @@ func TestSchema(t *testing.T) {
 				return
 			},
 		},
+		{
+			name: "query-params.yaml",
+			setup: func(api *API) (err error) {
+				api.Get(`/users?orgId=123&orderBy=field`).
+					HasQueryParameter("orgId", QueryParam{
+						Description: "ID of the organisation",
+						Required:    true,
+						Type:        PrimitiveTypeInteger,
+					}).
+					HasQueryParameter("orderBy", QueryParam{
+						Description: "The field to order the results by",
+						Required:    false,
+						Type:        PrimitiveTypeString,
+						Regexp:      `field|otherField`,
+					}).
+					HasResponseModel(http.StatusOK, ModelOf[User]())
+				return
+			},
+		},
 	}
 
 	for _, test := range tests {

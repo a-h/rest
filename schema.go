@@ -38,27 +38,23 @@ func getSortedKeys[V any](m map[string]V) (op []string) {
 	return op
 }
 
-func newPrimitiveSchema(paramType Primitive) *openapi3.Schema {
-	var schema *openapi3.Schema
+func newPrimitiveSchema(paramType PrimitiveType) *openapi3.Schema {
 	switch paramType {
-	case PrimitiveString:
-		schema = openapi3.NewStringSchema()
-	case PrimitiveBool:
-		schema = openapi3.NewBoolSchema()
-	case PrimitiveInteger:
-		schema = openapi3.NewIntegerSchema()
-	case PrimitiveFloat64:
-		schema = openapi3.NewFloat64Schema()
+	case PrimitiveTypeString:
+		return openapi3.NewStringSchema()
+	case PrimitiveTypeBool:
+		return openapi3.NewBoolSchema()
+	case PrimitiveTypeInteger:
+		return openapi3.NewIntegerSchema()
+	case PrimitiveTypeFloat64:
+		return openapi3.NewFloat64Schema()
+	case "":
+		return openapi3.NewStringSchema()
 	default:
-		if paramType == "" {
-			schema = openapi3.NewStringSchema()
-		} else {
-			schema = &openapi3.Schema{
-				Type: string(paramType),
-			}
+		return &openapi3.Schema{
+			Type: string(paramType),
 		}
 	}
-	return schema
 }
 
 func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
@@ -73,12 +69,11 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 			for _, k := range getSortedKeys(route.Params.Query) {
 				v := route.Params.Query[k]
 
-				qs := newPrimitiveSchema(v.Type)
-
+				ps := newPrimitiveSchema(v.Type).
+					WithPattern(v.Regexp)
 				queryParam := openapi3.NewQueryParameter(k).
 					WithDescription(v.Description).
-					WithSchema(qs)
-
+					WithSchema(ps)
 				queryParam.Required = v.Required
 				queryParam.AllowEmptyValue = v.AllowEmpty
 
@@ -89,12 +84,8 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 			for _, k := range getSortedKeys(route.Params.Path) {
 				v := route.Params.Path[k]
 
-				ps := newPrimitiveSchema(v.Type)
-
-				if v.Regexp != "" {
-					ps.WithPattern(v.Regexp)
-				}
-
+				ps := newPrimitiveSchema(v.Type).
+					WithPattern(v.Regexp)
 				pathParam := openapi3.NewPathParameter(k).
 					WithDescription(v.Description).
 					WithSchema(ps)
