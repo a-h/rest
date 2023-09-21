@@ -309,6 +309,9 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 				}
 			}
 			schema.Properties[fieldName] = ref
+			if api.requiredByDefault && f.Type.Kind() != reflect.Pointer {
+				schema.Required = append(schema.Required, fieldName)
+			}
 		}
 	}
 

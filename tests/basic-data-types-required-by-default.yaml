@@ -1,0 +1,83 @@
+openapi: 3.0.0
+components:
+  schemas:
+    AllBasicDataTypes:
+      type: object
+      properties:
+        Bool:
+          type: boolean
+        Byte:
+          type: integer
+        Float32:
+          type: number
+        Float64:
+          type: number
+        Int:
+          type: integer
+        Int8:
+          type: integer
+        Int16:
+          type: integer
+        Int32:
+          type: integer
+        Int64:
+          type: integer
+        Rune:
+          type: integer
+        String:
+          type: string
+        Uint:
+          type: integer
+        Uint8:
+          type: integer
+        Uint16:
+          type: integer
+        Uint32:
+          type: integer
+        Uint64:
+          type: integer
+        Uintptr:
+          type: integer
+      required:
+      - Int
+      - Int8
+      - Int16
+      - Int32
+      - Int64
+      - Uint
+      - Uint8
+      - Uint16
+      - Uint32
+      - Uint64
+      - Uintptr
+      - Float32
+      - Float64
+      - Byte
+      - Rune
+      - String
+      - Bool
+
+info:
+  title: basic-data-types-required-by-default.yaml
+  version: 0.0.0
+paths:
+  /test:
+    post:
+      operationId: "postAllBasicDataTypes"
+      description: "Post all basic data types description"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllBasicDataTypes'
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllBasicDataTypes'
+        default:
+          description: ""
+      tags:
+        - BasicData

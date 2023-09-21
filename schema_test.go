@@ -174,6 +174,29 @@ func TestSchema(t *testing.T) {
 			},
 		},
 		{
+			name: "basic-data-types-required-by-default.yaml",
+			setup: func(api *API) error {
+				api.requiredByDefault = true
+				api.Post("/test").
+					HasRequestModel(ModelOf[AllBasicDataTypes]()).
+					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypes]()).
+					HasOperationID("postAllBasicDataTypes").
+					HasTags([]string{"BasicData"}).
+					HasDescription("Post all basic data types description")
+				return nil
+			},
+		},
+		{
+			name: "basic-data-types-pointers-required-by-default.yaml",
+			setup: func(api *API) error {
+				api.requiredByDefault = true
+				api.Post("/test").
+					HasRequestModel(ModelOf[AllBasicDataTypesPointers]()).
+					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypesPointers]())
+				return nil
+			},
+		},
+		{
 			name: "anonymous-type.yaml",
 			setup: func(api *API) error {
 				api.Post("/test").

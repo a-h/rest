@@ -12,7 +12,7 @@ type APIOpts func(*API)
 
 // NewAPI creates a new API from the router.
 func NewAPI(name string, opts ...APIOpts) *API {
-	return &API{
+	api := &API{
 		Name:       name,
 		KnownTypes: defaultKnownTypes,
 		Routes:     make(map[Pattern]MethodToRoute),
@@ -20,6 +20,15 @@ func NewAPI(name string, opts ...APIOpts) *API {
 		models:   make(map[string]*openapi3.Schema),
 		comments: make(map[string]map[string]string),
 	}
+	for _, o := range opts {
+		o(api)
+	}
+	return api
+}
+
+// RequiredByDefault marks all fields as required unless they are pointers.
+func RequiredByDefault(api *API) {
+	api.requiredByDefault = true
 }
 
 var defaultKnownTypes = map[reflect.Type]*openapi3.Schema{
@@ -129,6 +138,10 @@ type API struct {
 
 	// comments from the package. This can be cleared once the spec has been created.
 	comments map[string]map[string]string
+
+	// requiredByDefault defines if all fields are marked as required.
+	// If a field is a pointer then it is no longer required.
+	requiredByDefault bool
 }
 
 // Merge route data into the existing configuration.
