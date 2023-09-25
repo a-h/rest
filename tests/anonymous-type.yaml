@@ -6,11 +6,15 @@ components:
       properties:                            
         A:   
           type: string                                                                            
+      required:
+      - A
     AnonymousType1: 
       type: object
       properties:
         B:
           type: string        
+      required:
+      - B
 info:           
   title: anonymous-type.yaml             
   version: 0.0.0   

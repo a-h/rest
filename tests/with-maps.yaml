@@ -2,13 +2,15 @@ openapi: 3.0.0
 components:
   schemas:
     WithMaps:
-      type: object
       properties:
         amounts:
-          type: object
-          nullable: true
           additionalProperties:
             type: integer
+          nullable: true
+          type: object
+      required:
+      - amounts
+      type: object
 info:
   title: with-maps.yaml
   version: 0.0.0

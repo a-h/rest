@@ -5,6 +5,8 @@ components:
       properties:
         IntField:
           type: integer
+      required:
+      - IntField
       type: object
     TestResponseType:
       description: TestResponseType description.
@@ -12,6 +14,8 @@ components:
         IntField:
           description: IntField description.
           type: integer
+      required:
+      - IntField
       type: object
 info:
   title: test001.yaml

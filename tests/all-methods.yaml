@@ -6,6 +6,8 @@ components:
       properties:
         ok:
           type: boolean
+      required:
+      - ok
 info:
   title: all-methods.yaml
   version: 0.0.0

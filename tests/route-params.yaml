@@ -2,12 +2,15 @@ openapi: 3.0.0
 components:
   schemas:
     User:
-      type: object
       properties:
         id:
           type: integer
         name:
           type: string
+      required:
+      - id
+      - name
+      type: object
 info:
   title: route-params.yaml
   version: 0.0.0

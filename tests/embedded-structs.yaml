@@ -6,6 +6,8 @@ components:
       properties:
         A:
           type: string
+      required:
+      - A
     WithEmbeddedStructs:
       type: object
       properties:
@@ -15,6 +17,8 @@ components:
           type: string
         C:
           type: string
+      required:
+      - C
 info:
   title: embedded-structs.yaml
   version: 0.0.0

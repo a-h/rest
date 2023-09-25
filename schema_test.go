@@ -155,6 +155,7 @@ func TestSchema(t *testing.T) {
 		{
 			name: "basic-data-types.yaml",
 			setup: func(api *API) error {
+				api.requiredByDefault = false
 				api.Post("/test").
 					HasRequestModel(ModelOf[AllBasicDataTypes]()).
 					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypes]()).
@@ -167,6 +168,7 @@ func TestSchema(t *testing.T) {
 		{
 			name: "basic-data-types-pointers.yaml",
 			setup: func(api *API) error {
+				api.requiredByDefault = false
 				api.Post("/test").
 					HasRequestModel(ModelOf[AllBasicDataTypesPointers]()).
 					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypesPointers]())
@@ -176,7 +178,6 @@ func TestSchema(t *testing.T) {
 		{
 			name: "basic-data-types-required-by-default.yaml",
 			setup: func(api *API) error {
-				api.requiredByDefault = true
 				api.Post("/test").
 					HasRequestModel(ModelOf[AllBasicDataTypes]()).
 					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypes]()).
@@ -189,7 +190,6 @@ func TestSchema(t *testing.T) {
 		{
 			name: "basic-data-types-pointers-required-by-default.yaml",
 			setup: func(api *API) error {
-				api.requiredByDefault = true
 				api.Post("/test").
 					HasRequestModel(ModelOf[AllBasicDataTypesPointers]()).
 					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypesPointers]())

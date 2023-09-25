@@ -10,6 +10,9 @@ components:
         LastName:
           description: LastName of something.
           type: string
+      required:
+      - firstName
+      - LastName
 info:
   title: with-name-struct-tags.yaml
   version: 0.0.0

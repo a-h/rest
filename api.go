@@ -19,6 +19,8 @@ func NewAPI(name string, opts ...APIOpts) *API {
 		// map of model name to schema.
 		models:   make(map[string]*openapi3.Schema),
 		comments: make(map[string]map[string]string),
+		// options
+		requiredByDefault: true,
 	}
 	for _, o := range opts {
 		o(api)
@@ -27,8 +29,11 @@ func NewAPI(name string, opts ...APIOpts) *API {
 }
 
 // RequiredByDefault marks all fields as required unless they are pointers.
-func RequiredByDefault(api *API) {
-	api.requiredByDefault = true
+// (Default: true)
+func RequiredByDefault(requiredByDefault bool) APIOpts {
+	return func(api *API) {
+		api.requiredByDefault = requiredByDefault
+	}
 }
 
 var defaultKnownTypes = map[reflect.Type]*openapi3.Schema{
