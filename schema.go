@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/a-h/rest/enums"
 	"github.com/a-h/rest/getcomments/parser"
 	"github.com/getkin/kin-openapi/openapi3"
 	"golang.org/x/exp/constraints"
@@ -210,6 +211,23 @@ func WithEnumValues[T ~string | constraints.Integer](values ...T) ModelOpts {
 		for _, v := range values {
 			s.Enum = append(s.Enum, v)
 		}
+	}
+}
+
+// WithEnumConstants sets the property to be an enum containing the values of the type found in the package.
+func WithEnumConstants[T ~string | constraints.Integer]() ModelOpts {
+	return func(s *openapi3.Schema) {
+		var t T
+		ty := reflect.TypeOf(t)
+		s.Type = openapi3.TypeString
+		if ty.Kind() != reflect.String {
+			s.Type = openapi3.TypeInteger
+		}
+		enum, err := enums.Get(ty)
+		if err != nil {
+			panic(err)
+		}
+		s.Enum = enum
 	}
 }
 

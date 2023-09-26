@@ -253,6 +253,17 @@ func TestSchema(t *testing.T) {
 			},
 		},
 		{
+			name: "enum-constants.yaml",
+			setup: func(api *API) (err error) {
+				// Register the enums and values.
+				api.RegisterModel(ModelOf[StringEnum](), WithEnumConstants[StringEnum]())
+				api.RegisterModel(ModelOf[IntEnum](), WithEnumConstants[IntEnum]())
+
+				api.Get("/get").HasResponseModel(http.StatusOK, ModelOf[WithEnums]())
+				return
+			},
+		},
+		{
 			name: "with-maps.yaml",
 			setup: func(api *API) (err error) {
 				api.Get("/get").HasResponseModel(http.StatusOK, ModelOf[WithMaps]())
