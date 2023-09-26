@@ -12,7 +12,7 @@ type APIOpts func(*API)
 
 // NewAPI creates a new API from the router.
 func NewAPI(name string, opts ...APIOpts) *API {
-	return &API{
+	api := &API{
 		Name:       name,
 		KnownTypes: defaultKnownTypes,
 		Routes:     make(map[Pattern]MethodToRoute),
@@ -20,6 +20,10 @@ func NewAPI(name string, opts ...APIOpts) *API {
 		models:   make(map[string]*openapi3.Schema),
 		comments: make(map[string]map[string]string),
 	}
+	for _, o := range opts {
+		o(api)
+	}
+	return api
 }
 
 var defaultKnownTypes = map[reflect.Type]*openapi3.Schema{

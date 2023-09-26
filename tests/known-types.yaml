@@ -11,6 +11,8 @@ components:
           type: string
           format: date-time
           nullable: true
+      required:
+      - time
 info:
   title: known-types.yaml
   version: 0.0.0

@@ -1,20 +1,23 @@
 openapi: 3.0.0
 components:
   schemas:
-    WithNameStructTags:
-      type: object
+    OmitEmptyFields:
       properties:
-        firstName:
-          description: FirstName of something.
+        A:
           type: string
-        LastName:
-          description: LastName of something.
+        B:
+          type: string
+        C:
+          nullable: true
+          type: string
+        D:
+          nullable: true
           type: string
       required:
-      - firstName
-      - LastName
+      - A
+      type: object
 info:
-  title: with-name-struct-tags.yaml
+  title: omit-empty-fields.yaml
   version: 0.0.0
 paths:
   /test:
@@ -23,14 +26,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WithNameStructTags'
+              $ref: '#/components/schemas/OmitEmptyFields'
       responses:
         "200":
-          description: ""
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WithNameStructTags'
+                $ref: '#/components/schemas/OmitEmptyFields'
+          description: ""
         default:
           description: ""
 

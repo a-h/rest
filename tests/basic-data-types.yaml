@@ -2,7 +2,6 @@ openapi: 3.0.0
 components:
   schemas:
     AllBasicDataTypes:
-      type: object
       properties:
         Bool:
           type: boolean
@@ -38,6 +37,25 @@ components:
           type: integer
         Uintptr:
           type: integer
+      required:
+      - Int
+      - Int8
+      - Int16
+      - Int32
+      - Int64
+      - Uint
+      - Uint8
+      - Uint16
+      - Uint32
+      - Uint64
+      - Uintptr
+      - Float32
+      - Float64
+      - Byte
+      - Rune
+      - String
+      - Bool
+      type: object
 info:
   title: basic-data-types.yaml
   version: 0.0.0
