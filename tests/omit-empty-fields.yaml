@@ -1,0 +1,39 @@
+openapi: 3.0.0
+components:
+  schemas:
+    OmitEmptyFields:
+      properties:
+        A:
+          type: string
+        B:
+          type: string
+        C:
+          nullable: true
+          type: string
+        D:
+          nullable: true
+          type: string
+      required:
+      - A
+      type: object
+info:
+  title: omit-empty-fields.yaml
+  version: 0.0.0
+paths:
+  /test:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OmitEmptyFields'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OmitEmptyFields'
+          description: ""
+        default:
+          description: ""
+

@@ -69,6 +69,13 @@ type AllBasicDataTypesPointers struct {
 	Bool    *bool
 }
 
+type OmitEmptyFields struct {
+	A string
+	B string `json:",omitempty"`
+	C *string
+	D *string `json:",omitempty"`
+}
+
 type EmbeddedStructA struct {
 	A string
 }
@@ -155,7 +162,6 @@ func TestSchema(t *testing.T) {
 		{
 			name: "basic-data-types.yaml",
 			setup: func(api *API) error {
-				api.requiredByDefault = false
 				api.Post("/test").
 					HasRequestModel(ModelOf[AllBasicDataTypes]()).
 					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypes]()).
@@ -168,7 +174,6 @@ func TestSchema(t *testing.T) {
 		{
 			name: "basic-data-types-pointers.yaml",
 			setup: func(api *API) error {
-				api.requiredByDefault = false
 				api.Post("/test").
 					HasRequestModel(ModelOf[AllBasicDataTypesPointers]()).
 					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypesPointers]())
@@ -176,23 +181,11 @@ func TestSchema(t *testing.T) {
 			},
 		},
 		{
-			name: "basic-data-types-required-by-default.yaml",
+			name: "omit-empty-fields.yaml",
 			setup: func(api *API) error {
 				api.Post("/test").
-					HasRequestModel(ModelOf[AllBasicDataTypes]()).
-					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypes]()).
-					HasOperationID("postAllBasicDataTypes").
-					HasTags([]string{"BasicData"}).
-					HasDescription("Post all basic data types description")
-				return nil
-			},
-		},
-		{
-			name: "basic-data-types-pointers-required-by-default.yaml",
-			setup: func(api *API) error {
-				api.Post("/test").
-					HasRequestModel(ModelOf[AllBasicDataTypesPointers]()).
-					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypesPointers]())
+					HasRequestModel(ModelOf[OmitEmptyFields]()).
+					HasResponseModel(http.StatusOK, ModelOf[OmitEmptyFields]())
 				return nil
 			},
 		},
