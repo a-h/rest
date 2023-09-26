@@ -69,6 +69,13 @@ type AllBasicDataTypesPointers struct {
 	Bool    *bool
 }
 
+type OmitEmptyFields struct {
+	A string
+	B string `json:",omitempty"`
+	C *string
+	D *string `json:",omitempty"`
+}
+
 type EmbeddedStructA struct {
 	A string
 }
@@ -170,6 +177,15 @@ func TestSchema(t *testing.T) {
 				api.Post("/test").
 					HasRequestModel(ModelOf[AllBasicDataTypesPointers]()).
 					HasResponseModel(http.StatusOK, ModelOf[AllBasicDataTypesPointers]())
+				return nil
+			},
+		},
+		{
+			name: "omit-empty-fields.yaml",
+			setup: func(api *API) error {
+				api.Post("/test").
+					HasRequestModel(ModelOf[OmitEmptyFields]()).
+					HasResponseModel(http.StatusOK, ModelOf[OmitEmptyFields]())
 				return nil
 			},
 		},

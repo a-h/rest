@@ -3,6 +3,7 @@ package rest
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
@@ -212,6 +213,10 @@ func WithEnumValues[T ~string | constraints.Integer](values ...T) ModelOpts {
 	}
 }
 
+func isFieldRequired(isPointer, hasOmitEmpty bool) bool {
+	return !(isPointer || hasOmitEmpty)
+}
+
 // RegisterModel allows a model to be registered manually so that additional configuration can be applied.
 // The schema returned can be modified as required.
 func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, schema *openapi3.Schema, err error) {
@@ -280,7 +285,8 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 				continue
 			}
 			// Get JSON fieldName.
-			fieldName := strings.Split(f.Tag.Get("json"), ",")[0]
+			jsonTags := strings.Split(f.Tag.Get("json"), ",")
+			fieldName := jsonTags[0]
 			if fieldName == "" {
 				fieldName = f.Name
 			}
@@ -309,6 +315,11 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 				}
 			}
 			schema.Properties[fieldName] = ref
+			isPtr := f.Type.Kind() == reflect.Pointer
+			hasOmitEmptySet := slices.Contains(jsonTags, "omitempty")
+			if isFieldRequired(isPtr, hasOmitEmptySet) {
+				schema.Required = append(schema.Required, fieldName)
+			}
 		}
 	}
 
