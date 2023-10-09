@@ -333,6 +333,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 				if err != nil {
 					return name, schema, fmt.Errorf("failed to get comments for field %q in type %q: %w", fieldName, name, err)
 				}
+				// Add description and example to the schema.
 				example := ""
 				ref.Value.Description, example = parseDescriptionAndExampleFromComments(comments)
 				if example != "" {
@@ -428,11 +429,14 @@ func (api *API) normalizeTypeName(pkgPath, name string) string {
 func parseDescriptionAndExampleFromComments(description string) (strippedDescription string, example string) {
 	// Look for example after "Example:"
 	idx := strings.Index(description, "Example:")
+	// If found, trim spaces and quotes
 	if idx != -1 {
 		example = strings.TrimSpace(description[idx+8:])
 		example = strings.Trim(example, `"'`)
+		// Strip the example from the description
 		strippedDescription = strings.TrimSpace(description[:idx])
 	} else {
+		// If not found, return the description as is
 		strippedDescription = description
 	}
 	return
@@ -443,7 +447,10 @@ func formatExample(example, fieldName, typeName string, schemaType string) (inte
 		// If example is empty, return nil
 		return nil, nil
 	}
+	// Convert the string comment to the respective type of the schema field
 	switch schemaType {
+	case "string":
+		return example, nil
 	case "integer":
 		i, err := strconv.Atoi(example)
 		if err != nil {
