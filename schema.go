@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/a-h/rest/enums"
@@ -328,8 +329,16 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 			}
 			ref := getSchemaReferenceOrValue(fieldSchemaName, fieldSchema)
 			if ref.Value != nil {
-				if ref.Value.Description, err = api.getTypeFieldComment(t.PkgPath(), t.Name(), f.Name); err != nil {
+				ref.Value.Description, err = api.getTypeFieldComment(t.PkgPath(), t.Name(), f.Name)
+				if err != nil {
 					return name, schema, fmt.Errorf("failed to get comments for field %q in type %q: %w", fieldName, name, err)
+				}
+				example := parseExampleFromDescription(ref.Value.Description)
+				if example != "" {
+					ref.Value.Example, err = parseExample(example, f.Name, t.Name(), ref.Value.Type)
+					if err != nil {
+						return name, schema, err
+					}
 				}
 			}
 			schema.Properties[fieldName] = ref
@@ -413,4 +422,46 @@ func (api *API) normalizeTypeName(pkgPath, name string) string {
 		return normalizer.Replace(name)
 	}
 	return normalizer.Replace(pkgPath + "/" + name)
+}
+
+func parseExampleFromDescription(description string) string {
+	// Look for example after "Example:"
+	idx := strings.Index(description, "Example:")
+	if idx != -1 {
+		example := strings.TrimSpace(description[idx+8:])
+		// Trim any leading/trailing quotes
+		example = strings.Trim(example, `"'`)
+		return example
+	}
+	return ""
+}
+
+func parseExample(example, fieldName, typeName string, schemaType string) (interface{}, error) {
+	if example == "" {
+		// If example is empty, return nil
+		return nil, nil
+	}
+	switch schemaType {
+	case "integer":
+		i, err := strconv.Atoi(example)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse example %q for field %q in type %q: %w", example, fieldName, typeName, err)
+		}
+		return i, nil
+	case "number":
+		f, err := strconv.ParseFloat(example, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse example %q for field %q in type %q: %w", example, fieldName, typeName, err)
+		}
+		return f, nil
+	case "boolean":
+		b, err := strconv.ParseBool(example)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse example %q for field %q in type %q: %w", example, fieldName, typeName, err)
+		}
+		return b, nil
+	default:
+		// For other types, return string example as is
+		return example, nil
+	}
 }
