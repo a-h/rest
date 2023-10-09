@@ -329,13 +329,14 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 			}
 			ref := getSchemaReferenceOrValue(fieldSchemaName, fieldSchema)
 			if ref.Value != nil {
-				ref.Value.Description, err = api.getTypeFieldComment(t.PkgPath(), t.Name(), f.Name)
+				comments, err := api.getTypeFieldComment(t.PkgPath(), t.Name(), f.Name)
 				if err != nil {
 					return name, schema, fmt.Errorf("failed to get comments for field %q in type %q: %w", fieldName, name, err)
 				}
-				example := parseExampleFromDescription(ref.Value.Description)
+				example := ""
+				ref.Value.Description, example = parseDescriptionAndExampleFromComments(comments)
 				if example != "" {
-					ref.Value.Example, err = parseExample(example, f.Name, t.Name(), ref.Value.Type)
+					ref.Value.Example, err = formatExample(example, f.Name, t.Name(), ref.Value.Type)
 					if err != nil {
 						return name, schema, err
 					}
@@ -424,19 +425,20 @@ func (api *API) normalizeTypeName(pkgPath, name string) string {
 	return normalizer.Replace(pkgPath + "/" + name)
 }
 
-func parseExampleFromDescription(description string) string {
+func parseDescriptionAndExampleFromComments(description string) (strippedDescription string, example string) {
 	// Look for example after "Example:"
 	idx := strings.Index(description, "Example:")
 	if idx != -1 {
-		example := strings.TrimSpace(description[idx+8:])
-		// Trim any leading/trailing quotes
+		example = strings.TrimSpace(description[idx+8:])
 		example = strings.Trim(example, `"'`)
-		return example
+		strippedDescription = strings.TrimSpace(description[:idx])
+	} else {
+		strippedDescription = description
 	}
-	return ""
+	return
 }
 
-func parseExample(example, fieldName, typeName string, schemaType string) (interface{}, error) {
+func formatExample(example, fieldName, typeName string, schemaType string) (interface{}, error) {
 	if example == "" {
 		// If example is empty, return nil
 		return nil, nil
