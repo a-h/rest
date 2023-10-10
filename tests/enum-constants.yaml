@@ -27,6 +27,11 @@ components:
             $ref: '#/components/schemas/StringEnum'
         v:
           type: string
+      required:
+      - s
+      - ss
+      - i
+      - v
 info:
   title: enum-constants.yaml
   version: 0.0.0
