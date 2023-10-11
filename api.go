@@ -64,7 +64,7 @@ type PathParam struct {
 	// Description of the param.
 	Description string
 	// Example of the param.
-	Example string
+	Example interface{}
 	// Regexp is a regular expression used to validate the param.
 	// An empty string means that no validation is applied.
 	Regexp string
