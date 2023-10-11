@@ -74,6 +74,9 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 
 				ps := newPrimitiveSchema(v.Type).
 					WithPattern(v.Regexp)
+				if v.Example != "" {
+					ps.Example = v.Example
+				}
 				queryParam := openapi3.NewQueryParameter(k).
 					WithDescription(v.Description).
 					WithSchema(ps)
@@ -89,6 +92,9 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 
 				ps := newPrimitiveSchema(v.Type).
 					WithPattern(v.Regexp)
+				if v.Example != "" {
+					ps.Example = v.Example
+				}
 				pathParam := openapi3.NewPathParameter(k).
 					WithDescription(v.Description).
 					WithSchema(ps)

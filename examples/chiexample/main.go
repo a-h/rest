@@ -69,6 +69,10 @@ func main() {
 
 	// Document the routes.
 	api.Get("/topic/{id}").
+		HasPathParameter("id", rest.PathParam{
+			Description: "id of the topic",
+			Example:     "123",
+		}).
 		HasResponseModel(http.StatusOK, rest.ModelOf[models.TopicsGetResponse]()).
 		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
 
