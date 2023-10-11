@@ -84,7 +84,7 @@ type QueryParam struct {
 	// AllowEmpty sets whether the querystring parameter can be empty.
 	AllowEmpty bool
 	// Example of the param.
-	Example string
+	Example interface{}
 	// Type of the param (string, number, integer, boolean).
 	Type PrimitiveType
 }
