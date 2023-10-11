@@ -1,17 +1,17 @@
 package rest
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/a-h/rest/enums"
+	"github.com/a-h/rest/getcomments/parser"
+	"github.com/getkin/kin-openapi/openapi3"
+	"golang.org/x/exp/constraints"
 	"reflect"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/a-h/rest/enums"
-	"github.com/a-h/rest/getcomments/parser"
-	"github.com/getkin/kin-openapi/openapi3"
-	"golang.org/x/exp/constraints"
 )
 
 func newSpec(name string) *openapi3.T {
@@ -469,6 +469,13 @@ func formatExample(example, fieldName, typeName string, schemaType string) (inte
 			return nil, fmt.Errorf("failed to parse example %q for field %q in type %q: %w", example, fieldName, typeName, err)
 		}
 		return b, nil
+	case "array":
+		var array []interface{}
+		err := json.Unmarshal([]byte(example), &array)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse example %q for field %q in type %q: %w", example, fieldName, typeName, err)
+		}
+		return array, nil
 	default:
 		// For other types, return string example as is
 		return example, nil

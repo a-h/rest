@@ -12,6 +12,9 @@ type Topic struct {
 	// ViewCount is the number of times the topic has been viewed.
 	// Example: "1234"
 	ViewCount int64 `json:"viewCount"`
+	// Keywords is a list of keywords for the topic. This is optional.
+	// Example: ["Growing pains", "Tech"]
+	Keywords []string `json:"keywords,omitempty"`
 }
 
 // TopicsPostRequest is the request to POST /topics.
