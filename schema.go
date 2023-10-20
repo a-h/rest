@@ -324,6 +324,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 				for name, ref := range fieldSchema.Properties {
 					schema.Properties[name] = ref
 				}
+				schema.Required = append(schema.Required, fieldSchema.Required...)
 				continue
 			}
 			ref := getSchemaReferenceOrValue(fieldSchemaName, fieldSchema)

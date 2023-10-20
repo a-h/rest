@@ -80,7 +80,10 @@ type EmbeddedStructA struct {
 	A string
 }
 type EmbeddedStructB struct {
-	B string
+	B                string
+	OptionalB        string `json:",omitempty"`
+	PointerB         *string
+	OptionalPointerB *string `json:",omitempty"`
 }
 
 type WithEmbeddedStructs struct {
