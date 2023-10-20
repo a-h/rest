@@ -18,6 +18,8 @@ components:
         C:
           type: string
       required:
+      - A
+      - B
       - C
 info:
   title: embedded-structs.yaml
