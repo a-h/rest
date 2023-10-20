@@ -15,6 +15,14 @@ components:
           type: string
         B:
           type: string
+        OptionalB:
+          type: string
+        PointerB:
+          nullable: true
+          type: string
+        OptionalPointerB:
+          nullable: true
+          type: string
         C:
           type: string
       required:
