@@ -235,6 +235,17 @@ func isFieldRequired(isPointer, hasOmitEmpty bool) bool {
 	return !(isPointer || hasOmitEmpty)
 }
 
+func isMarkedAsDeprecated(comment string) bool {
+	// A field is only marked as deprecated if a paragraph (line) begins with Deprecated.
+	// https://github.com/golang/go/wiki/Deprecated
+	for _, line := range strings.Split(comment, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "Deprecated:") {
+			return true
+		}
+	}
+	return false
+}
+
 // RegisterModel allows a model to be registered manually so that additional configuration can be applied.
 // The schema returned can be modified as required.
 func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, schema *openapi3.Schema, err error) {
@@ -293,7 +304,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 		schema.AdditionalProperties.Schema = getSchemaReferenceOrValue(elementName, elementSchema)
 	case reflect.Struct:
 		schema = openapi3.NewObjectSchema()
-		if schema.Description, err = api.getTypeComment(t.PkgPath(), t.Name()); err != nil {
+		if schema.Description, schema.Deprecated, err = api.getTypeComment(t.PkgPath(), t.Name()); err != nil {
 			return name, schema, fmt.Errorf("failed to get comments for type %q: %w", name, err)
 		}
 		schema.Properties = make(openapi3.Schemas)
@@ -329,7 +340,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 			}
 			ref := getSchemaReferenceOrValue(fieldSchemaName, fieldSchema)
 			if ref.Value != nil {
-				if ref.Value.Description, err = api.getTypeFieldComment(t.PkgPath(), t.Name(), f.Name); err != nil {
+				if ref.Value.Description, ref.Value.Deprecated, err = api.getTypeFieldComment(t.PkgPath(), t.Name(), f.Name); err != nil {
 					return name, schema, fmt.Errorf("failed to get comments for field %q in type %q: %w", fieldName, name, err)
 				}
 			}
@@ -371,20 +382,24 @@ func (api *API) getCommentsForPackage(pkg string) (pkgComments map[string]string
 	return
 }
 
-func (api *API) getTypeComment(pkg string, name string) (comment string, err error) {
+func (api *API) getTypeComment(pkg string, name string) (comment string, deprecated bool, err error) {
 	pkgComments, err := api.getCommentsForPackage(pkg)
 	if err != nil {
 		return
 	}
-	return pkgComments[pkg+"."+name], nil
+	comment = pkgComments[pkg+"."+name]
+	deprecated = isMarkedAsDeprecated(comment)
+	return
 }
 
-func (api *API) getTypeFieldComment(pkg string, name string, field string) (comment string, err error) {
+func (api *API) getTypeFieldComment(pkg string, name string, field string) (comment string, deprecated bool, err error) {
 	pkgComments, err := api.getCommentsForPackage(pkg)
 	if err != nil {
 		return
 	}
-	return pkgComments[pkg+"."+name+"."+field], nil
+	comment = pkgComments[pkg+"."+name+"."+field]
+	deprecated = isMarkedAsDeprecated(comment)
+	return
 }
 
 func shouldBeReferenced(schema *openapi3.Schema) bool {
