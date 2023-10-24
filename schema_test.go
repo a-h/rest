@@ -97,6 +97,12 @@ type WithNameStructTags struct {
 	FirstName string `json:"firstName"`
 	// LastName of something.
 	LastName string
+	// FullName of something.
+	// Deprecated: Use FirstName and LastName
+	FullName string
+	// MiddleName of something. Deprecated: This deprecation flag is not valid so this field should
+	// not be marked as deprecated.
+	MiddleName string
 }
 
 type KnownTypes struct {

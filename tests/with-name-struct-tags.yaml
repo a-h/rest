@@ -10,9 +10,22 @@ components:
         LastName:
           description: LastName of something.
           type: string
+        FullName:
+          deprecated: true
+          description: |-
+            FullName of something.
+            Deprecated: Use FirstName and LastName
+          type: string
+        MiddleName:
+          description: |-
+            MiddleName of something. Deprecated: This deprecation flag is not valid so this field should
+            not be marked as deprecated.
+          type: string
       required:
       - firstName
       - LastName
+      - FullName
+      - MiddleName
 info:
   title: with-name-struct-tags.yaml
   version: 0.0.0
