@@ -148,6 +148,13 @@ type WithMaps struct {
 	Amounts map[string]Pence `json:"amounts"`
 }
 
+type MultipleDateFieldsWithComments struct {
+	// DateField is a field containing a date
+	DateField time.Time `json:"dateField"`
+	// DateFieldA is another field containing a date
+	DateFieldA time.Time `json:"dateFieldA"`
+}
+
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -309,6 +316,14 @@ func TestSchema(t *testing.T) {
 						Regexp:      `field|otherField`,
 					}).
 					HasResponseModel(http.StatusOK, ModelOf[User]())
+				return
+			},
+		},
+		{
+			name: "multiple-dates-with-comments.yaml",
+			setup: func(api *API) (err error) {
+				api.Get("/dates").
+					HasResponseModel(http.StatusOK, ModelOf[MultipleDateFieldsWithComments]())
 				return
 			},
 		},

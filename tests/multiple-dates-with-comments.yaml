@@ -1,0 +1,32 @@
+openapi: 3.0.0
+components:
+  schemas:
+    MultipleDateFieldsWithComments:
+      properties:
+        dateField:
+          description: DateField is a field containing a date
+          format: date-time
+          type: string
+        dateFieldA:
+          description: DateFieldA is another field containing a date
+          format: date-time
+          type: string
+      required:
+        - dateField
+        - dateFieldA
+      type: object
+info:
+  title: multiple-dates-with-comments.yaml
+  version: 0.0.0
+paths:
+  /dates:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MultipleDateFieldsWithComments'
+          description: ""
+        default:
+          description: ""
