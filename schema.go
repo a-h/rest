@@ -260,13 +260,13 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 	}
 
 	// It's known, but not in the schemaset yet.
-	if schema, ok = api.KnownTypes[t]; ok {
+	if knownSchema, ok := api.KnownTypes[t]; ok {
 		// Objects, enums, need to be references, so add it into the
 		// list.
-		if shouldBeReferenced(schema) {
-			api.models[name] = schema
+		if shouldBeReferenced(&knownSchema) {
+			api.models[name] = &knownSchema
 		}
-		return name, schema, nil
+		return name, &knownSchema, nil
 	}
 
 	var elementName string
