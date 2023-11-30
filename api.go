@@ -59,10 +59,12 @@ type Params struct {
 	Query map[string]QueryParam
 }
 
-// PathParam is a paramater that's used in the path of a URL.
+// PathParam is a parameter that's used in the path of a URL.
 type PathParam struct {
 	// Description of the param.
 	Description string
+	// Example of the param.
+	Example interface{}
 	// Regexp is a regular expression used to validate the param.
 	// An empty string means that no validation is applied.
 	Regexp string
@@ -70,7 +72,7 @@ type PathParam struct {
 	Type PrimitiveType
 }
 
-// QueryParam is a paramater that's used in the querystring of a URL.
+// QueryParam is a parameter that's used in the querystring of a URL.
 type QueryParam struct {
 	// Description of the param.
 	Description string
@@ -81,6 +83,8 @@ type QueryParam struct {
 	Required bool
 	// AllowEmpty sets whether the querystring parameter can be empty.
 	AllowEmpty bool
+	// Example of the param.
+	Example interface{}
 	// Type of the param (string, number, integer, boolean).
 	Type PrimitiveType
 }
