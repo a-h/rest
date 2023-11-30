@@ -26,9 +26,9 @@ func NewAPI(name string, opts ...APIOpts) *API {
 	return api
 }
 
-var defaultKnownTypes = map[reflect.Type]*openapi3.Schema{
-	reflect.TypeOf(time.Time{}):  openapi3.NewDateTimeSchema(),
-	reflect.TypeOf(&time.Time{}): openapi3.NewDateTimeSchema().WithNullable(),
+var defaultKnownTypes = map[reflect.Type]openapi3.Schema{
+	reflect.TypeOf(time.Time{}):  *openapi3.NewDateTimeSchema(),
+	reflect.TypeOf(&time.Time{}): *openapi3.NewDateTimeSchema().WithNullable(),
 }
 
 // Route models a single API route.
@@ -129,7 +129,7 @@ type API struct {
 	// KnownTypes are added to the OpenAPI specification output.
 	// The default implementation:
 	//   Maps time.Time to a string.
-	KnownTypes map[reflect.Type]*openapi3.Schema
+	KnownTypes map[reflect.Type]openapi3.Schema
 
 	// comments from the package. This can be cleared once the spec has been created.
 	comments map[string]map[string]string
