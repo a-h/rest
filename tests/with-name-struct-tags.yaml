@@ -11,7 +11,6 @@ components:
           description: LastName of something.
           type: string
         FullName:
-          deprecated: true
           description: |-
             FullName of something.
             Deprecated: Use FirstName and LastName

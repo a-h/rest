@@ -1,7 +1,7 @@
 {
-  "github.com/a-h/rest/getcomments/parser/tests/chans.ChanType": "ChanType could be ignored, since chanels can't be part of schema.",
-  "github.com/a-h/rest/getcomments/parser/tests/chans.Data": "Data should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/chans.Data.AndIgnoreThisToo": "AndIgnoreThisToo could be ignored, but isn't.",
-  "github.com/a-h/rest/getcomments/parser/tests/chans.Data.AndThisAlias": "AndThisAlias could also be ignored.",
-  "github.com/a-h/rest/getcomments/parser/tests/chans.Data.AndThisArrayOfChannels": "AndThisArrayOfChannels could also be ignored."
+  "github.com/aviva-verde/rest/getcomments/parser/tests/chans.ChanType": "ChanType could be ignored, since chanels can't be part of schema.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/chans.Data": "Data should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/chans.Data.AndIgnoreThisToo": "AndIgnoreThisToo could be ignored, but isn't.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/chans.Data.AndThisAlias": "AndThisAlias could also be ignored.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/chans.Data.AndThisArrayOfChannels": "AndThisArrayOfChannels could also be ignored."
 }
