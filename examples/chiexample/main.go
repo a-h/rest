@@ -6,10 +6,10 @@ import (
 	"net/http"
 
 	"github.com/a-h/respond"
-	"github.com/a-h/rest"
-	"github.com/a-h/rest/chiadapter"
-	"github.com/a-h/rest/examples/chiexample/models"
-	"github.com/a-h/rest/swaggerui"
+	"github.com/aviva-verde/rest"
+	"github.com/aviva-verde/rest/chiadapter"
+	"github.com/aviva-verde/rest/examples/chiexample/models"
+	"github.com/aviva-verde/rest/swaggerui"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 )
@@ -69,6 +69,10 @@ func main() {
 
 	// Document the routes.
 	api.Get("/topic/{id}").
+		HasPathParameter("id", rest.PathParam{
+			Description: "id of the topic",
+			Example:     "123",
+		}).
 		HasResponseModel(http.StatusOK, rest.ModelOf[models.TopicsGetResponse]()).
 		HasResponseModel(http.StatusInternalServerError, rest.ModelOf[respond.Error]())
 

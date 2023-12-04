@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/a-h/rest"
-	"github.com/a-h/rest/chiadapter"
+	"github.com/aviva-verde/rest"
+	"github.com/aviva-verde/rest/chiadapter"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/go-cmp/cmp"
 )

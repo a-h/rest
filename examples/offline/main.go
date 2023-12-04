@@ -7,15 +7,15 @@ import (
 	"os"
 
 	"github.com/a-h/respond"
-	"github.com/a-h/rest"
-	"github.com/a-h/rest/examples/offline/models"
+	"github.com/aviva-verde/rest"
+	"github.com/aviva-verde/rest/examples/offline/models"
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
 func main() {
 	// Configure the models.
 	api := rest.NewAPI("messages")
-	api.StripPkgPaths = []string{"github.com/a-h/rest/example", "github.com/a-h/respond"}
+	api.StripPkgPaths = []string{"github.com/aviva-verde/rest/example", "github.com/a-h/respond"}
 
 	api.RegisterModel(rest.ModelOf[respond.Error](), rest.WithDescription("Standard JSON error"), func(s *openapi3.Schema) {
 		status := s.Properties["statusCode"]

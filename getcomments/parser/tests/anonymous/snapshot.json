@@ -1,5 +1,5 @@
 {
-  "github.com/a-h/rest/getcomments/parser/tests/anonymous.Data": "Data should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/anonymous.Data.A": "A should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/anonymous.Data.B": "B should be included."
+  "github.com/aviva-verde/rest/getcomments/parser/tests/anonymous.Data": "Data should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/anonymous.Data.A": "A should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/anonymous.Data.B": "B should be included."
 }
