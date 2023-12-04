@@ -27,7 +27,7 @@ func newSpec(name string) *openapi3.T {
 			Schemas:    make(openapi3.Schemas),
 			Extensions: map[string]interface{}{},
 		},
-		Paths:      openapi3.Paths{},
+		Paths:      openapi3.NewPaths(),
 		Extensions: map[string]interface{}{},
 	}
 }
@@ -152,7 +152,7 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 			spec.Components.Schemas[name] = openapi3.NewSchemaRef("", schema)
 		}
 
-		spec.Paths[string(pattern)] = path
+		spec.Paths.Set(string(pattern), path)
 	}
 
 	loader := openapi3.NewLoader()
