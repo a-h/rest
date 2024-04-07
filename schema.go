@@ -54,7 +54,7 @@ func newPrimitiveSchema(paramType PrimitiveType) *openapi3.Schema {
 		return openapi3.NewStringSchema()
 	default:
 		return &openapi3.Schema{
-			Type: string(paramType),
+			Type: &openapi3.Types{string(paramType)},
 		}
 	}
 }
@@ -204,9 +204,9 @@ func WithEnumValues[T ~string | constraints.Integer](values ...T) ModelOpts {
 		if len(values) == 0 {
 			return
 		}
-		s.Type = openapi3.TypeString
+		s.Type = &openapi3.Types{openapi3.TypeString}
 		if reflect.TypeOf(values[0]).Kind() != reflect.String {
-			s.Type = openapi3.TypeInteger
+			s.Type = &openapi3.Types{openapi3.TypeInteger}
 		}
 		for _, v := range values {
 			s.Enum = append(s.Enum, v)
@@ -219,9 +219,9 @@ func WithEnumConstants[T ~string | constraints.Integer]() ModelOpts {
 	return func(s *openapi3.Schema) {
 		var t T
 		ty := reflect.TypeOf(t)
-		s.Type = openapi3.TypeString
+		s.Type = &openapi3.Types{openapi3.TypeString}
 		if ty.Kind() != reflect.String {
-			s.Type = openapi3.TypeInteger
+			s.Type = &openapi3.Types{openapi3.TypeInteger}
 		}
 		enum, err := enums.Get(ty)
 		if err != nil {
@@ -403,7 +403,7 @@ func (api *API) getTypeFieldComment(pkg string, name string, field string) (comm
 }
 
 func shouldBeReferenced(schema *openapi3.Schema) bool {
-	if schema.Type == openapi3.TypeObject && schema.AdditionalProperties.Schema == nil {
+	if schema.Type.Is(openapi3.TypeObject) && schema.AdditionalProperties.Schema == nil {
 		return true
 	}
 	if len(schema.Enum) > 0 {

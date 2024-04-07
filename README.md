@@ -110,7 +110,7 @@ go test ./...
 
 ### run-example
 
-Dir: ./example/stdlib
+Dir: ./examples/stdlib
 
 ```
 go run main.go
