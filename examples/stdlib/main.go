@@ -6,10 +6,10 @@ import (
 	"net/http"
 
 	"github.com/a-h/respond"
-	"github.com/a-h/rest"
-	"github.com/a-h/rest/examples/stdlib/handlers/topic/post"
-	"github.com/a-h/rest/examples/stdlib/handlers/topics/get"
-	"github.com/a-h/rest/swaggerui"
+	"github.com/aviva-verde/rest"
+	"github.com/aviva-verde/rest/examples/stdlib/handlers/topic/post"
+	"github.com/aviva-verde/rest/examples/stdlib/handlers/topics/get"
+	"github.com/aviva-verde/rest/swaggerui"
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
@@ -20,7 +20,7 @@ func main() {
 	router.Handle("/topic", &post.Handler{})
 
 	api := rest.NewAPI("messages")
-	api.StripPkgPaths = []string{"github.com/a-h/rest/example", "github.com/a-h/respond"}
+	api.StripPkgPaths = []string{"github.com/aviva-verde/rest/example", "github.com/a-h/respond"}
 
 	// It's possible to customise the OpenAPI schema for each type.
 	// You can use helper functions, or write your own function that works

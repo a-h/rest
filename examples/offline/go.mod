@@ -1,14 +1,14 @@
-module github.com/a-h/rest/examples/offline
+module github.com/aviva-verde/rest/examples/offline
 
 go 1.21
 
 toolchain go1.22.2
 
-replace github.com/a-h/rest v0.0.0 => ../../
+replace github.com/aviva-verde/rest v0.0.0 => ../../
 
 require (
 	github.com/a-h/respond v0.0.2
-	github.com/a-h/rest v0.0.0
+	github.com/aviva-verde/rest v0.0.0
 	github.com/getkin/kin-openapi v0.124.0
 )
 

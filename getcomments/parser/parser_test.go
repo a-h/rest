@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/a-h/rest/getcomments/parser"
-	"github.com/a-h/rest/getcomments/parser/tests/anonymous"
-	"github.com/a-h/rest/getcomments/parser/tests/chans"
-	"github.com/a-h/rest/getcomments/parser/tests/docs"
-	"github.com/a-h/rest/getcomments/parser/tests/enum"
-	"github.com/a-h/rest/getcomments/parser/tests/functions"
-	"github.com/a-h/rest/getcomments/parser/tests/functiontypes"
-	"github.com/a-h/rest/getcomments/parser/tests/pointers"
-	"github.com/a-h/rest/getcomments/parser/tests/privatetypes"
-	"github.com/a-h/rest/getcomments/parser/tests/publictypes"
+	"github.com/aviva-verde/rest/getcomments/parser"
+	"github.com/aviva-verde/rest/getcomments/parser/tests/anonymous"
+	"github.com/aviva-verde/rest/getcomments/parser/tests/chans"
+	"github.com/aviva-verde/rest/getcomments/parser/tests/docs"
+	"github.com/aviva-verde/rest/getcomments/parser/tests/enum"
+	"github.com/aviva-verde/rest/getcomments/parser/tests/functions"
+	"github.com/aviva-verde/rest/getcomments/parser/tests/functiontypes"
+	"github.com/aviva-verde/rest/getcomments/parser/tests/pointers"
+	"github.com/aviva-verde/rest/getcomments/parser/tests/privatetypes"
+	"github.com/aviva-verde/rest/getcomments/parser/tests/publictypes"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -25,47 +25,47 @@ func TestGet(t *testing.T) {
 	}{
 		{
 			name:     "private structs are ignored",
-			pkg:      "github.com/a-h/rest/getcomments/parser/tests/privatetypes",
+			pkg:      "github.com/aviva-verde/rest/getcomments/parser/tests/privatetypes",
 			expected: privatetypes.Expected,
 		},
 		{
 			name:     "public structs are included",
-			pkg:      "github.com/a-h/rest/getcomments/parser/tests/publictypes",
+			pkg:      "github.com/aviva-verde/rest/getcomments/parser/tests/publictypes",
 			expected: publictypes.Expected,
 		},
 		{
 			name:     "string and integer enums are supported",
-			pkg:      "github.com/a-h/rest/getcomments/parser/tests/enum",
+			pkg:      "github.com/aviva-verde/rest/getcomments/parser/tests/enum",
 			expected: enum.Expected,
 		},
 		{
 			name:     "pointers to pointers become a single pointer",
-			pkg:      "github.com/a-h/rest/getcomments/parser/tests/pointers",
+			pkg:      "github.com/aviva-verde/rest/getcomments/parser/tests/pointers",
 			expected: pointers.Expected,
 		},
 		{
 			name:     "functions and method receivers are ignored",
-			pkg:      "github.com/a-h/rest/getcomments/parser/tests/functions",
+			pkg:      "github.com/aviva-verde/rest/getcomments/parser/tests/functions",
 			expected: functions.Expected,
 		},
 		{
 			name:     "fields of type channel are ignored",
-			pkg:      "github.com/a-h/rest/getcomments/parser/tests/chans",
+			pkg:      "github.com/aviva-verde/rest/getcomments/parser/tests/chans",
 			expected: chans.Expected,
 		},
 		{
 			name:     "anonymous structs are ignored",
-			pkg:      "github.com/a-h/rest/getcomments/parser/tests/anonymous",
+			pkg:      "github.com/aviva-verde/rest/getcomments/parser/tests/anonymous",
 			expected: anonymous.Expected,
 		},
 		{
 			name:     "function fields and function types are ignored",
-			pkg:      "github.com/a-h/rest/getcomments/parser/tests/functiontypes",
+			pkg:      "github.com/aviva-verde/rest/getcomments/parser/tests/functiontypes",
 			expected: functiontypes.Expected,
 		},
 		{
 			name:     "stuct, field and constant comments are extracted",
-			pkg:      "github.com/a-h/rest/getcomments/parser/tests/docs",
+			pkg:      "github.com/aviva-verde/rest/getcomments/parser/tests/docs",
 			expected: docs.Expected,
 		},
 	}

@@ -6,10 +6,10 @@ import (
 	"net/http"
 
 	"github.com/a-h/respond"
-	"github.com/a-h/rest"
-	"github.com/a-h/rest/chiadapter"
-	"github.com/a-h/rest/examples/chiexample/models"
-	"github.com/a-h/rest/swaggerui"
+	"github.com/aviva-verde/rest"
+	"github.com/aviva-verde/rest/chiadapter"
+	"github.com/aviva-verde/rest/examples/chiexample/models"
+	"github.com/aviva-verde/rest/swaggerui"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 )

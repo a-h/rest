@@ -1,6 +1,6 @@
 {
-  "github.com/a-h/rest/getcomments/parser/tests/enum.IntEnum": "IntEnum should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/enum.IntEnum0": "IntEnum0 should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/enum.StringEnum": "StringEnum should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/enum.StringEnumA": "StringEnum comment."
+  "github.com/aviva-verde/rest/getcomments/parser/tests/enum.IntEnum": "IntEnum should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/enum.IntEnum0": "IntEnum0 should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/enum.StringEnum": "StringEnum should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/enum.StringEnumA": "StringEnum comment."
 }

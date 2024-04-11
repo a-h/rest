@@ -1,8 +1,8 @@
 {
-  "github.com/a-h/rest/getcomments/parser/tests/maps.MapValue": "MapValue should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/maps.MapValue.FieldA": "FieldA should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/maps.Type": "Type should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/maps.Type.MapOfMapValue": "MapOfMapValue should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/maps.Type.MapOfMapsToMaps": "MapOfMapsToMaps should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/maps.Type.MapOfStringToString": "MapOfStringToString should be included."
+  "github.com/aviva-verde/rest/getcomments/parser/tests/maps.MapValue": "MapValue should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/maps.MapValue.FieldA": "FieldA should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/maps.Type": "Type should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/maps.Type.MapOfMapValue": "MapOfMapValue should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/maps.Type.MapOfMapsToMaps": "MapOfMapsToMaps should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/maps.Type.MapOfStringToString": "MapOfStringToString should be included."
 }

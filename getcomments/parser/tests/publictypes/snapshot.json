@@ -1,4 +1,4 @@
 {
-  "github.com/a-h/rest/getcomments/parser/tests/publictypes.Public": "Public types should be included.",
-  "github.com/a-h/rest/getcomments/parser/tests/publictypes.Public.A": "A public field on a public type should be included."
+  "github.com/aviva-verde/rest/getcomments/parser/tests/publictypes.Public": "Public types should be included.",
+  "github.com/aviva-verde/rest/getcomments/parser/tests/publictypes.Public.A": "A public field on a public type should be included."
 }
