@@ -155,6 +155,25 @@ type MultipleDateFieldsWithComments struct {
 	DateFieldA time.Time `json:"dateFieldA"`
 }
 
+type StructWithCustomisation struct {
+	A string                  `json:"a"`
+	B FieldWithCustomisation  `json:"b"`
+	C *FieldWithCustomisation `json:"c"`
+}
+
+func (*StructWithCustomisation) OpenAPISchema(s *openapi3.Schema) {
+	s.Properties["a"].Value.Description = "A string"
+	s.Properties["a"].Value.Example = "test"
+	s.Properties["b"].Value.Description = "A custom field"
+}
+
+type FieldWithCustomisation string
+
+func (*FieldWithCustomisation) OpenAPISchema(s *openapi3.Schema) {
+	s.Format = "custom"
+	s.Example = "model_field_customisation"
+}
+
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -291,7 +310,25 @@ func TestSchema(t *testing.T) {
 			setup: func(api *API) (err error) {
 				api.Get(`/organisation/{orgId:\d+}/user/{userId}`).
 					HasPathParameter("orgId", PathParam{
+						Description: "Organisation ID",
+						Regexp:      `\d+`,
+					}).
+					HasPathParameter("userId", PathParam{
+						Description: "User ID",
+					}).
+					HasResponseModel(http.StatusOK, ModelOf[User]())
+				return
+			},
+		},
+		{
+			name: "route-params.yaml",
+			setup: func(api *API) (err error) {
+				api.Get(`/organisation/{orgId:\d+}/user/{userId}`).
+					HasPathParameter("orgId", PathParam{
 						Regexp: `\d+`,
+						Schema: func(s *openapi3.Parameter) {
+							s.Description = "Organisation ID"
+						},
 					}).
 					HasPathParameter("userId", PathParam{
 						Description: "User ID",
@@ -320,10 +357,43 @@ func TestSchema(t *testing.T) {
 			},
 		},
 		{
+			name: "query-params.yaml",
+			setup: func(api *API) (err error) {
+				api.Get(`/users?orgId=123&orderBy=field`).
+					HasQueryParameter("orgId", QueryParam{
+						Required: true,
+						Type:     PrimitiveTypeInteger,
+						Schema: func(s *openapi3.Parameter) {
+							s.Description = "ID of the organisation"
+						},
+					}).
+					HasQueryParameter("orderBy", QueryParam{
+						Required: false,
+						Type:     PrimitiveTypeString,
+						Regexp:   `field|otherField`,
+						Schema: func(s *openapi3.Parameter) {
+							s.Description = "The field to order the results by"
+						},
+					}).
+					HasResponseModel(http.StatusOK, ModelOf[User]())
+				return
+			},
+		},
+		{
 			name: "multiple-dates-with-comments.yaml",
 			setup: func(api *API) (err error) {
 				api.Get("/dates").
 					HasResponseModel(http.StatusOK, ModelOf[MultipleDateFieldsWithComments]())
+				return
+			},
+		},
+		{
+			name: "custom-models.yaml",
+			setup: func(api *API) (err error) {
+				api.Get("/struct-with-customisation").
+					HasResponseModel(http.StatusOK, ModelOf[StructWithCustomisation]())
+				api.Get("/struct-ptr-with-customisation").
+					HasResponseModel(http.StatusOK, ModelOf[*StructWithCustomisation]())
 				return
 			},
 		},

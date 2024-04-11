@@ -68,6 +68,8 @@ type PathParam struct {
 	Regexp string
 	// Type of the param (string, number, integer, boolean).
 	Type PrimitiveType
+	// Schema customises the OpenAPI schema for the path parameter.
+	Schema func(s *openapi3.Parameter)
 }
 
 // QueryParam is a paramater that's used in the querystring of a URL.
@@ -83,6 +85,8 @@ type QueryParam struct {
 	AllowEmpty bool
 	// Type of the param (string, number, integer, boolean).
 	Type PrimitiveType
+	// Schema customises the OpenAPI schema for the query parameter.
+	Schema func(s *openapi3.Parameter)
 }
 
 type PrimitiveType string
@@ -294,18 +298,39 @@ type Models struct {
 // ModelOf creates a model of type T.
 func ModelOf[T any]() Model {
 	var t T
-	return Model{
+	m := Model{
 		Type: reflect.TypeOf(t),
 	}
+	if sm, ok := any(t).(SchemaProvider); ok {
+		m.s = sm.OpenAPISchema
+	}
+	return m
 }
 
 func modelFromType(t reflect.Type) Model {
-	return Model{
+	m := Model{
 		Type: t,
 	}
+	if sm, ok := reflect.New(t).Interface().(SchemaProvider); ok {
+		m.s = sm.OpenAPISchema
+	}
+	return m
+}
+
+// SchemaProvider is a type that customises its OpenAPI schema.
+type SchemaProvider interface {
+	OpenAPISchema(s *openapi3.Schema)
 }
 
 // Model is a model used in one or more routes.
 type Model struct {
 	Type reflect.Type
+	s    func(s *openapi3.Schema)
+}
+
+func (m Model) OpenAPISchema(s *openapi3.Schema) {
+	if m.s == nil {
+		return
+	}
+	m.s(s)
 }

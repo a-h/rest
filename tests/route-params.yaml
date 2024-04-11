@@ -19,6 +19,7 @@ paths:
     get:
       parameters:
         - in: path
+          description: Organisation ID
           name: orgId
           required: true
           schema:
