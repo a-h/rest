@@ -77,8 +77,8 @@ type PathParam struct {
 	Regexp string
 	// Type of the param (string, number, integer, boolean).
 	Type PrimitiveType
-	// Schema customises the OpenAPI schema for the path parameter.
-	Schema func(s *openapi3.Parameter)
+	// ApplyCustomSchema customises the OpenAPI schema for the path parameter.
+	ApplyCustomSchema func(s *openapi3.Parameter)
 }
 
 // QueryParam is a paramater that's used in the querystring of a URL.
@@ -94,8 +94,8 @@ type QueryParam struct {
 	AllowEmpty bool
 	// Type of the param (string, number, integer, boolean).
 	Type PrimitiveType
-	// Schema customises the OpenAPI schema for the query parameter.
-	Schema func(s *openapi3.Parameter)
+	// ApplyCustomSchema customises the OpenAPI schema for the query parameter.
+	ApplyCustomSchema func(s *openapi3.Parameter)
 }
 
 type PrimitiveType string

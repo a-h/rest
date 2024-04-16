@@ -332,7 +332,7 @@ func TestSchema(t *testing.T) {
 				api.Get(`/organisation/{orgId:\d+}/user/{userId}`).
 					HasPathParameter("orgId", PathParam{
 						Regexp: `\d+`,
-						Schema: func(s *openapi3.Parameter) {
+						ApplyCustomSchema: func(s *openapi3.Parameter) {
 							s.Description = "Organisation ID"
 						},
 					}).
@@ -369,7 +369,7 @@ func TestSchema(t *testing.T) {
 					HasQueryParameter("orgId", QueryParam{
 						Required: true,
 						Type:     PrimitiveTypeInteger,
-						Schema: func(s *openapi3.Parameter) {
+						ApplyCustomSchema: func(s *openapi3.Parameter) {
 							s.Description = "ID of the organisation"
 						},
 					}).
@@ -377,7 +377,7 @@ func TestSchema(t *testing.T) {
 						Required: false,
 						Type:     PrimitiveTypeString,
 						Regexp:   `field|otherField`,
-						Schema: func(s *openapi3.Parameter) {
+						ApplyCustomSchema: func(s *openapi3.Parameter) {
 							s.Description = "The field to order the results by"
 						},
 					}).

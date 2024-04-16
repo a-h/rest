@@ -80,8 +80,8 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 				queryParam.AllowEmptyValue = v.AllowEmpty
 
 				// Apply schema customisation.
-				if v.Schema != nil {
-					v.Schema(queryParam)
+				if v.ApplyCustomSchema != nil {
+					v.ApplyCustomSchema(queryParam)
 				}
 
 				op.AddParameter(queryParam)
@@ -98,8 +98,8 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 					WithSchema(ps)
 
 				// Apply schema customisation.
-				if v.Schema != nil {
-					v.Schema(pathParam)
+				if v.ApplyCustomSchema != nil {
+					v.ApplyCustomSchema(pathParam)
 				}
 
 				op.AddParameter(pathParam)
