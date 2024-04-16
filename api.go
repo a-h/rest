@@ -10,6 +10,15 @@ import (
 
 type APIOpts func(*API)
 
+// WithApplyCustomSchemaToType enables customisation of types in the OpenAPI specification.
+// Apply customisation to a specific type by checking the t parameter.
+// Apply customisations to all types by ignoring the t parameter.
+func WithApplyCustomSchemaToType(f func(t reflect.Type, s *openapi3.Schema)) APIOpts {
+	return func(api *API) {
+		api.ApplyCustomSchemaToType = f
+	}
+}
+
 // NewAPI creates a new API from the router.
 func NewAPI(name string, opts ...APIOpts) *API {
 	api := &API{
@@ -68,6 +77,8 @@ type PathParam struct {
 	Regexp string
 	// Type of the param (string, number, integer, boolean).
 	Type PrimitiveType
+	// ApplyCustomSchema customises the OpenAPI schema for the path parameter.
+	ApplyCustomSchema func(s *openapi3.Parameter)
 }
 
 // QueryParam is a paramater that's used in the querystring of a URL.
@@ -83,6 +94,8 @@ type QueryParam struct {
 	AllowEmpty bool
 	// Type of the param (string, number, integer, boolean).
 	Type PrimitiveType
+	// ApplyCustomSchema customises the OpenAPI schema for the query parameter.
+	ApplyCustomSchema func(s *openapi3.Parameter)
 }
 
 type PrimitiveType string
@@ -133,6 +146,11 @@ type API struct {
 
 	// comments from the package. This can be cleared once the spec has been created.
 	comments map[string]map[string]string
+
+	// ApplyCustomSchemaToType callback to customise the OpenAPI specification for a given type.
+	// Apply customisation to a specific type by checking the t parameter.
+	// Apply customisations to all types by ignoring the t parameter.
+	ApplyCustomSchemaToType func(t reflect.Type, s *openapi3.Schema)
 }
 
 // Merge route data into the existing configuration.
@@ -294,18 +312,41 @@ type Models struct {
 // ModelOf creates a model of type T.
 func ModelOf[T any]() Model {
 	var t T
-	return Model{
+	m := Model{
 		Type: reflect.TypeOf(t),
 	}
+	if sm, ok := any(t).(CustomSchemaApplier); ok {
+		m.s = sm.ApplyCustomSchema
+	}
+	return m
 }
 
 func modelFromType(t reflect.Type) Model {
-	return Model{
+	m := Model{
 		Type: t,
 	}
+	if sm, ok := reflect.New(t).Interface().(CustomSchemaApplier); ok {
+		m.s = sm.ApplyCustomSchema
+	}
+	return m
 }
+
+// CustomSchemaApplier is a type that customises its OpenAPI schema.
+type CustomSchemaApplier interface {
+	ApplyCustomSchema(s *openapi3.Schema)
+}
+
+var _ CustomSchemaApplier = Model{}
 
 // Model is a model used in one or more routes.
 type Model struct {
 	Type reflect.Type
+	s    func(s *openapi3.Schema)
+}
+
+func (m Model) ApplyCustomSchema(s *openapi3.Schema) {
+	if m.s == nil {
+		return
+	}
+	m.s(s)
 }

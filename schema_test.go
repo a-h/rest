@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -155,9 +156,33 @@ type MultipleDateFieldsWithComments struct {
 	DateFieldA time.Time `json:"dateFieldA"`
 }
 
+type StructWithCustomisation struct {
+	A string                  `json:"a"`
+	B FieldWithCustomisation  `json:"b"`
+	C *FieldWithCustomisation `json:"c"`
+}
+
+func (*StructWithCustomisation) ApplyCustomSchema(s *openapi3.Schema) {
+	s.Properties["a"].Value.Description = "A string"
+	s.Properties["a"].Value.Example = "test"
+	s.Properties["b"].Value.Description = "A custom field"
+}
+
+type FieldWithCustomisation string
+
+func (*FieldWithCustomisation) ApplyCustomSchema(s *openapi3.Schema) {
+	s.Format = "custom"
+	s.Example = "model_field_customisation"
+}
+
+type StructWithTags struct {
+	A string `json:"a" rest:"A is a string."`
+}
+
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
+		opts  []APIOpts
 		setup func(api *API) error
 	}{
 		{
@@ -291,7 +316,25 @@ func TestSchema(t *testing.T) {
 			setup: func(api *API) (err error) {
 				api.Get(`/organisation/{orgId:\d+}/user/{userId}`).
 					HasPathParameter("orgId", PathParam{
+						Description: "Organisation ID",
+						Regexp:      `\d+`,
+					}).
+					HasPathParameter("userId", PathParam{
+						Description: "User ID",
+					}).
+					HasResponseModel(http.StatusOK, ModelOf[User]())
+				return
+			},
+		},
+		{
+			name: "route-params.yaml",
+			setup: func(api *API) (err error) {
+				api.Get(`/organisation/{orgId:\d+}/user/{userId}`).
+					HasPathParameter("orgId", PathParam{
 						Regexp: `\d+`,
+						ApplyCustomSchema: func(s *openapi3.Parameter) {
+							s.Description = "Organisation ID"
+						},
 					}).
 					HasPathParameter("userId", PathParam{
 						Description: "User ID",
@@ -320,11 +363,82 @@ func TestSchema(t *testing.T) {
 			},
 		},
 		{
+			name: "query-params.yaml",
+			setup: func(api *API) (err error) {
+				api.Get(`/users?orgId=123&orderBy=field`).
+					HasQueryParameter("orgId", QueryParam{
+						Required: true,
+						Type:     PrimitiveTypeInteger,
+						ApplyCustomSchema: func(s *openapi3.Parameter) {
+							s.Description = "ID of the organisation"
+						},
+					}).
+					HasQueryParameter("orderBy", QueryParam{
+						Required: false,
+						Type:     PrimitiveTypeString,
+						Regexp:   `field|otherField`,
+						ApplyCustomSchema: func(s *openapi3.Parameter) {
+							s.Description = "The field to order the results by"
+						},
+					}).
+					HasResponseModel(http.StatusOK, ModelOf[User]())
+				return
+			},
+		},
+		{
 			name: "multiple-dates-with-comments.yaml",
 			setup: func(api *API) (err error) {
 				api.Get("/dates").
 					HasResponseModel(http.StatusOK, ModelOf[MultipleDateFieldsWithComments]())
 				return
+			},
+		},
+		{
+			name: "custom-models.yaml",
+			setup: func(api *API) (err error) {
+				api.Get("/struct-with-customisation").
+					HasResponseModel(http.StatusOK, ModelOf[StructWithCustomisation]())
+				api.Get("/struct-ptr-with-customisation").
+					HasResponseModel(http.StatusOK, ModelOf[*StructWithCustomisation]())
+				return
+			},
+		},
+		{
+			name: "global-customisation.yaml",
+			opts: []APIOpts{
+				WithApplyCustomSchemaToType(func(t reflect.Type, s *openapi3.Schema) {
+					if t != reflect.TypeOf(StructWithTags{}) {
+						return
+					}
+					for fi := 0; fi < t.NumField(); fi++ {
+						// Get the field name.
+						var name string
+						name = t.Field(fi).Tag.Get("json")
+						if name == "" {
+							name = t.Field(fi).Name
+						}
+
+						// Get the custom description from the struct tag.
+						desc := t.Field(fi).Tag.Get("rest")
+						if desc == "" {
+							continue
+						}
+						if s.Properties == nil {
+							s.Properties = make(map[string]*openapi3.SchemaRef)
+						}
+						if s.Properties[name] == nil {
+							s.Properties[name] = &openapi3.SchemaRef{
+								Value: &openapi3.Schema{},
+							}
+						}
+						s.Properties[name].Value.Description = desc
+					}
+				}),
+			},
+			setup: func(api *API) error {
+				api.Get("/").
+					HasResponseModel(http.StatusOK, ModelOf[StructWithTags]())
+				return nil
 			},
 		},
 	}
@@ -357,7 +471,7 @@ func TestSchema(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				// Create the API.
-				api := NewAPI(test.name)
+				api := NewAPI(test.name, test.opts...)
 				api.StripPkgPaths = []string{"github.com/a-h/rest"}
 				// Configure it.
 				test.setup(api)

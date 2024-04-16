@@ -1,0 +1,49 @@
+components:
+  schemas:
+    StructWithCustomisation:
+      properties:
+        a:
+          description: A string
+          example: "test"
+          type: string
+        b:
+          description: A custom field
+          type: string
+          format: custom
+          example: "model_field_customisation"
+        c:
+          nullable: true
+          type: string
+          format: custom
+          example: "model_field_customisation"
+      required:
+      - a
+      - b
+      type: object
+info:
+  title: custom-models.yaml
+  version: 0.0.0
+openapi: 3.0.0
+paths:
+  /struct-ptr-with-customisation:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StructWithCustomisation'
+          description: ""
+        default:
+          description: ""
+  /struct-with-customisation:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StructWithCustomisation'
+          description: ""
+        default:
+          description: ""

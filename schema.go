@@ -79,6 +79,11 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 				queryParam.Required = v.Required
 				queryParam.AllowEmptyValue = v.AllowEmpty
 
+				// Apply schema customisation.
+				if v.ApplyCustomSchema != nil {
+					v.ApplyCustomSchema(queryParam)
+				}
+
 				op.AddParameter(queryParam)
 			}
 
@@ -91,6 +96,11 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 				pathParam := openapi3.NewPathParameter(k).
 					WithDescription(v.Description).
 					WithSchema(ps)
+
+				// Apply schema customisation.
+				if v.ApplyCustomSchema != nil {
+					v.ApplyCustomSchema(pathParam)
+				}
 
 				op.AddParameter(pathParam)
 			}
@@ -356,6 +366,15 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 	if schema == nil {
 		return name, schema, fmt.Errorf("unsupported type: %v/%v", t.PkgPath(), t.Name())
 	}
+
+	// Apply global customisation.
+	if api.ApplyCustomSchemaToType != nil {
+		api.ApplyCustomSchemaToType(t, schema)
+	}
+
+	// Customise the model using its ApplyCustomSchema method.
+	// This allows any type to customise its schema.
+	model.ApplyCustomSchema(schema)
 
 	for _, opt := range opts {
 		opt(schema)

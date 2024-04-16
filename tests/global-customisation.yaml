@@ -1,0 +1,26 @@
+openapi: 3.0.0
+components:
+  schemas:
+    StructWithTags:
+      properties:
+        a:
+          description: A is a string.
+          type: string
+      required:
+      - a
+      type: object
+info:
+  title: global-customisation.yaml
+  version: 0.0.0
+paths:
+  /:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StructWithTags'
+          description: ""
+        default:
+          description: ""
