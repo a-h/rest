@@ -10,10 +10,10 @@ import (
 
 type APIOpts func(*API)
 
-// WithCustomiseSchema enables customisation of types in the OpenAPI specification.
+// WithApplyCustomSchemaToType enables customisation of types in the OpenAPI specification.
 // Apply customisation to a specific type by checking the t parameter.
 // Apply customisations to all types by ignoring the t parameter.
-func WithCustomiseSchema(f func(t reflect.Type, s *openapi3.Schema)) APIOpts {
+func WithApplyCustomSchemaToType(f func(t reflect.Type, s *openapi3.Schema)) APIOpts {
 	return func(api *API) {
 		api.ApplyCustomSchemaToType = f
 	}

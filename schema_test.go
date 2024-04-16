@@ -406,7 +406,7 @@ func TestSchema(t *testing.T) {
 		{
 			name: "global-customisation.yaml",
 			opts: []APIOpts{
-				WithCustomiseSchema(func(t reflect.Type, s *openapi3.Schema) {
+				WithApplyCustomSchemaToType(func(t reflect.Type, s *openapi3.Schema) {
 					if t != reflect.TypeOf(StructWithTags{}) {
 						return
 					}
