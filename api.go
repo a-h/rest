@@ -10,6 +10,15 @@ import (
 
 type APIOpts func(*API)
 
+// WithCustomiseSchema enables customisation of types in the OpenAPI specification.
+// Apply customisation to a specific type by checking the t parameter.
+// Apply customisations to all types by ignoring the t parameter.
+func WithCustomiseSchema(f func(t reflect.Type, s *openapi3.Schema)) APIOpts {
+	return func(api *API) {
+		api.ApplyCustomSchemaToType = f
+	}
+}
+
 // NewAPI creates a new API from the router.
 func NewAPI(name string, opts ...APIOpts) *API {
 	api := &API{
@@ -137,6 +146,11 @@ type API struct {
 
 	// comments from the package. This can be cleared once the spec has been created.
 	comments map[string]map[string]string
+
+	// ApplyCustomSchemaToType callback to customise the OpenAPI specification for a given type.
+	// Apply customisation to a specific type by checking the t parameter.
+	// Apply customisations to all types by ignoring the t parameter.
+	ApplyCustomSchemaToType func(t reflect.Type, s *openapi3.Schema)
 }
 
 // Merge route data into the existing configuration.
@@ -301,8 +315,8 @@ func ModelOf[T any]() Model {
 	m := Model{
 		Type: reflect.TypeOf(t),
 	}
-	if sm, ok := any(t).(SchemaProvider); ok {
-		m.s = sm.OpenAPISchema
+	if sm, ok := any(t).(CustomSchemaApplier); ok {
+		m.s = sm.ApplyCustomSchema
 	}
 	return m
 }
@@ -311,16 +325,18 @@ func modelFromType(t reflect.Type) Model {
 	m := Model{
 		Type: t,
 	}
-	if sm, ok := reflect.New(t).Interface().(SchemaProvider); ok {
-		m.s = sm.OpenAPISchema
+	if sm, ok := reflect.New(t).Interface().(CustomSchemaApplier); ok {
+		m.s = sm.ApplyCustomSchema
 	}
 	return m
 }
 
-// SchemaProvider is a type that customises its OpenAPI schema.
-type SchemaProvider interface {
-	OpenAPISchema(s *openapi3.Schema)
+// CustomSchemaApplier is a type that customises its OpenAPI schema.
+type CustomSchemaApplier interface {
+	ApplyCustomSchema(s *openapi3.Schema)
 }
+
+var _ CustomSchemaApplier = Model{}
 
 // Model is a model used in one or more routes.
 type Model struct {
@@ -328,7 +344,7 @@ type Model struct {
 	s    func(s *openapi3.Schema)
 }
 
-func (m Model) OpenAPISchema(s *openapi3.Schema) {
+func (m Model) ApplyCustomSchema(s *openapi3.Schema) {
 	if m.s == nil {
 		return
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -161,7 +162,7 @@ type StructWithCustomisation struct {
 	C *FieldWithCustomisation `json:"c"`
 }
 
-func (*StructWithCustomisation) OpenAPISchema(s *openapi3.Schema) {
+func (*StructWithCustomisation) ApplyCustomSchema(s *openapi3.Schema) {
 	s.Properties["a"].Value.Description = "A string"
 	s.Properties["a"].Value.Example = "test"
 	s.Properties["b"].Value.Description = "A custom field"
@@ -169,14 +170,19 @@ func (*StructWithCustomisation) OpenAPISchema(s *openapi3.Schema) {
 
 type FieldWithCustomisation string
 
-func (*FieldWithCustomisation) OpenAPISchema(s *openapi3.Schema) {
+func (*FieldWithCustomisation) ApplyCustomSchema(s *openapi3.Schema) {
 	s.Format = "custom"
 	s.Example = "model_field_customisation"
+}
+
+type StructWithTags struct {
+	A string `json:"a" rest:"A is a string."`
 }
 
 func TestSchema(t *testing.T) {
 	tests := []struct {
 		name  string
+		opts  []APIOpts
 		setup func(api *API) error
 	}{
 		{
@@ -397,6 +403,44 @@ func TestSchema(t *testing.T) {
 				return
 			},
 		},
+		{
+			name: "global-customisation.yaml",
+			opts: []APIOpts{
+				WithCustomiseSchema(func(t reflect.Type, s *openapi3.Schema) {
+					if t != reflect.TypeOf(StructWithTags{}) {
+						return
+					}
+					for fi := 0; fi < t.NumField(); fi++ {
+						// Get the field name.
+						var name string
+						name = t.Field(fi).Tag.Get("json")
+						if name == "" {
+							name = t.Field(fi).Name
+						}
+
+						// Get the custom description from the struct tag.
+						desc := t.Field(fi).Tag.Get("rest")
+						if desc == "" {
+							continue
+						}
+						if s.Properties == nil {
+							s.Properties = make(map[string]*openapi3.SchemaRef)
+						}
+						if s.Properties[name] == nil {
+							s.Properties[name] = &openapi3.SchemaRef{
+								Value: &openapi3.Schema{},
+							}
+						}
+						s.Properties[name].Value.Description = desc
+					}
+				}),
+			},
+			setup: func(api *API) error {
+				api.Get("/").
+					HasResponseModel(http.StatusOK, ModelOf[StructWithTags]())
+				return nil
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -427,7 +471,7 @@ func TestSchema(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				// Create the API.
-				api := NewAPI(test.name)
+				api := NewAPI(test.name, test.opts...)
 				api.StripPkgPaths = []string{"github.com/a-h/rest"}
 				// Configure it.
 				test.setup(api)

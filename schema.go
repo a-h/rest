@@ -367,9 +367,14 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 		return name, schema, fmt.Errorf("unsupported type: %v/%v", t.PkgPath(), t.Name())
 	}
 
-	// Customise the model using its OpenAPISchema method.
+	// Apply global customisation.
+	if api.ApplyCustomSchemaToType != nil {
+		api.ApplyCustomSchemaToType(t, schema)
+	}
+
+	// Customise the model using its ApplyCustomSchema method.
 	// This allows any type to customise its schema.
-	model.OpenAPISchema(schema)
+	model.ApplyCustomSchema(schema)
 
 	for _, opt := range opts {
 		opt(schema)
