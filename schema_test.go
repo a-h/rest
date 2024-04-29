@@ -184,6 +184,7 @@ func TestSchema(t *testing.T) {
 		name  string
 		opts  []APIOpts
 		setup func(api *API) error
+		spec  func(api *API) (*openapi3.T, error)
 	}{
 		{
 			name:  "test000.yaml",
@@ -441,6 +442,30 @@ func TestSchema(t *testing.T) {
 				return nil
 			},
 		},
+		{
+			name: "auth2-with-code-flow.yaml",
+			setup: func(api *API) (err error) {
+
+				api.Post("/topic").
+					HasResponseModel(http.StatusOK, ModelOf[string]()).
+					RequireAuth2(SecurityRequirement{
+						"gkd": []string{},
+					})
+				return nil
+			},
+			spec: func(api *API) (*openapi3.T, error) {
+				// openapi3.T
+				return api.SpecWithOauth2("gkd",
+					Oauth2CodeFlow{
+						AuthorizationURL: "http://10.45.8.189:8080/oauth/v2/authorize",
+						RefreshURL:       "http://localhost:8080/swagger-ui/",
+						TokenURL:         "http://10.45.8.189:8080/oauth/v2/token",
+						Scopes: map[string]string{
+							"openid": "gkd",
+						},
+					})
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -476,7 +501,14 @@ func TestSchema(t *testing.T) {
 				// Configure it.
 				test.setup(api)
 				// Create the actual spec.
-				spec, err := api.Spec()
+				var spec *openapi3.T
+				var err error
+				if test.spec == nil {
+					spec, err = api.Spec()
+				} else {
+					spec, err = test.spec(api)
+				}
+
 				if err != nil {
 					t.Errorf("failed to generate spec: %v", err)
 				}
