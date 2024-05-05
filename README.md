@@ -99,7 +99,26 @@ fmt.Println("Visit http://localhost:8080/swagger-ui to see API definitions")
 fmt.Println("Listening on :8080...")
 http.ListenAndServe(":8080", router)
 ```
+If you want to use oauth2,just like this:
+```go
+	api.Post("/topic").
+		HasResponseModel(http.StatusOK, rest.ModelOf[string]()).
+		RequireAuth2(rest.SecurityRequirement{
+			"gkd": []string{},
+		})
 
+	spec, err := api.SpecWithOauth2("Oauth2IdOrNameYouSet",
+		rest.Oauth2CodeFlow{
+			AuthorizationURL: "http://10.45.8.189:8080/oauth/v2/authorize",
+			RefreshURL:       "http://localhost:8080/swagger-ui/",
+			TokenURL:         "http://10.45.8.189:8080/oauth/v2/token",
+			Scopes: map[string]string{
+				"openid": "the openid",
+			},
+		},
+	)
+```
+**Only the Code Flow of OAuth2 has been thoroughly tested through Zitadel. Testing for the other OAuth2 modes is scheduled to be completed in the coming period; theoretically, these other modes should also be feasible.**
 ## Tasks
 
 ### test

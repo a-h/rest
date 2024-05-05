@@ -56,6 +56,8 @@ type Route struct {
 	OperationID string
 	// Description for the route.
 	Description string
+	// SecurityRequirement
+	SecurityRequirement []SecurityRequirement
 }
 
 // Params is a route parameter.
@@ -185,6 +187,102 @@ func (api *API) Spec() (spec *openapi3.T, err error) {
 	return
 }
 
+// the interface used by function SpecWithOauth2
+type CodeFlow interface {
+	getSecuritySchemes() *openapi3.SecuritySchemeRef
+}
+type Oauth2CodeFlow struct {
+	AuthorizationURL string
+	TokenURL         string
+	RefreshURL       string
+	Scopes           map[string]string
+}
+
+func (o Oauth2CodeFlow) getSecuritySchemes() *openapi3.SecuritySchemeRef {
+	return &openapi3.SecuritySchemeRef{
+		Value: &openapi3.SecurityScheme{
+			Type: "oauth2",
+			Flows: &openapi3.OAuthFlows{
+				AuthorizationCode: &openapi3.OAuthFlow{
+					AuthorizationURL: o.AuthorizationURL,
+					TokenURL:         o.TokenURL,
+					RefreshURL:       o.RefreshURL,
+					Scopes:           o.Scopes,
+				},
+			},
+		},
+	}
+}
+
+type Oauth2ImplicitFlow struct {
+	AuthorizationURL string
+	Scopes           map[string]string
+}
+
+func (o Oauth2ImplicitFlow) getSecuritySchemes() *openapi3.SecuritySchemeRef {
+	return &openapi3.SecuritySchemeRef{
+		Value: &openapi3.SecurityScheme{
+			Type: "oauth2",
+			Flows: &openapi3.OAuthFlows{
+				Implicit: &openapi3.OAuthFlow{
+					AuthorizationURL: o.AuthorizationURL,
+					Scopes:           o.Scopes,
+				},
+			},
+		},
+	}
+}
+
+type Oauth2ClientCredentialsFlow struct {
+	TokenURL string
+	Scopes   map[string]string
+}
+
+func (o Oauth2ClientCredentialsFlow) getSecuritySchemes() *openapi3.SecuritySchemeRef {
+	return &openapi3.SecuritySchemeRef{
+		Value: &openapi3.SecurityScheme{
+			Type: "oauth2",
+			Flows: &openapi3.OAuthFlows{
+				ClientCredentials: &openapi3.OAuthFlow{
+					TokenURL: o.TokenURL,
+					Scopes:   o.Scopes,
+				},
+			},
+		},
+	}
+}
+
+type Oauth2PasswordFlow struct {
+	TokenURL string
+	Scopes   map[string]string
+}
+
+func (o Oauth2PasswordFlow) getSecuritySchemes() *openapi3.SecuritySchemeRef {
+	return &openapi3.SecuritySchemeRef{
+		Value: &openapi3.SecurityScheme{
+			Type: "oauth2",
+			Flows: &openapi3.OAuthFlows{
+				Password: &openapi3.OAuthFlow{
+					TokenURL: o.TokenURL,
+					Scopes:   o.Scopes,
+				},
+			},
+		},
+	}
+}
+
+// Spec creates with OIDC
+func (api *API) SpecWithOauth2(name string, codeFlow CodeFlow) (spec *openapi3.T, err error) {
+	spec, err = api.createOpenAPI()
+	spec.Components.SecuritySchemes = make(openapi3.SecuritySchemes)
+	spec.Components.SecuritySchemes[name] = codeFlow.getSecuritySchemes()
+
+	if err != nil {
+		return
+	}
+	return
+}
+
 // Route upserts a route to the API definition.
 func (api *API) Route(method, pattern string) (r *Route) {
 	methodToRoute, ok := api.Routes[Pattern(pattern)]
@@ -300,6 +398,14 @@ func (rm *Route) HasOperationID(operationID string) *Route {
 // HasDescription sets the description for the route.
 func (rm *Route) HasDescription(description string) *Route {
 	rm.Description = description
+	return rm
+}
+
+// NeedAuth2
+type SecurityRequirement map[string][]string
+
+func (rm *Route) RequireAuth2(r ...SecurityRequirement) *Route {
+	rm.SecurityRequirement = r
 	return rm
 }
 

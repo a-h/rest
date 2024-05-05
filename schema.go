@@ -144,6 +144,14 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 
 			// Handle description.
 			op.Description = route.Description
+			if len(route.SecurityRequirement) > 0 {
+				// Handle Oauth2
+				var dlist openapi3.SecurityRequirements = make(openapi3.SecurityRequirements, 0)
+				for _, v := range route.SecurityRequirement {
+					dlist = append(dlist, openapi3.SecurityRequirement(v))
+				}
+				op.Security = &dlist
+			}
 
 			// Register the method.
 			path.SetOperation(string(method), op)
