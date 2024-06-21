@@ -344,6 +344,14 @@ type Model struct {
 	s    func(s *openapi3.Schema)
 }
 
+// WithCustomSchemaApplier sets the custom schema applier.
+//
+// Note: this overrides any existing custom schema applier on the type.
+func (m Model) WithCustomSchemaApplier(fn func(s *openapi3.Schema)) Model {
+	m.s = fn
+	return m
+}
+
 func (m Model) ApplyCustomSchema(s *openapi3.Schema) {
 	if m.s == nil {
 		return
