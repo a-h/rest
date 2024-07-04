@@ -133,7 +133,7 @@ type API struct {
 	// in different namespaces that are set to be stripped, and have the same type Name
 	// could clash.
 	//
-	// Example values could be "github.com/a-h/rest".
+	// Example values could be "github.com/the-pawn-2017/rest".
 	StripPkgPaths []string
 
 	// Models are the models that are in use in the API.
@@ -271,7 +271,7 @@ func (o Oauth2PasswordFlow) getSecuritySchemes() *openapi3.SecuritySchemeRef {
 	}
 }
 
-// Spec creates with OIDC
+// Spec creates with Oauth2
 func (api *API) SpecWithOauth2(name string, codeFlow CodeFlow) (spec *openapi3.T, err error) {
 	spec, err = api.createOpenAPI()
 	spec.Components.SecuritySchemes = make(openapi3.SecuritySchemes)

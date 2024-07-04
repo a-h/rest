@@ -1,4 +1,4 @@
-module github.com/a-h/rest
+module github.com/the-pawn-2017/rest
 
 go 1.21
 

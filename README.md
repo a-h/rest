@@ -1,5 +1,5 @@
 # REST
-
+> fork from a-h/rest.
 Document a REST API with an OpenAPI 3.0 specification.
 
 * Code, not configuration.
@@ -22,7 +22,7 @@ See the [./examples](./examples) directory for complete examples.
 ```go
 // Configure the models.
 api := rest.NewAPI("messages")
-api.StripPkgPaths = []string{"github.com/a-h/rest/example", "github.com/a-h/respond"}
+api.StripPkgPaths = []string{"github.com/the-pawn-2017/rest/example", "github.com/a-h/respond"}
 
 api.RegisterModel(rest.ModelOf[respond.Error](), rest.WithDescription("Standard JSON error"), func(s *openapi3.Schema) {
   status := s.Properties["statusCode"]
@@ -58,7 +58,7 @@ router.Handle("/topics", &get.Handler{})
 router.Handle("/topic", &post.Handler{})
 
 api := rest.NewAPI("messages")
-api.StripPkgPaths = []string{"github.com/a-h/rest/example", "github.com/a-h/respond"}
+api.StripPkgPaths = []string{"github.com/the-pawn-2017/rest/example", "github.com/a-h/respond"}
 
 // Register the error type with customisations.
 api.RegisterModel(rest.ModelOf[respond.Error](), rest.WithDescription("Standard JSON error"), func(s *openapi3.Schema) {
@@ -107,7 +107,7 @@ If you want to use oauth2,just like this:
 			"gkd": []string{},
 		})
 
-	spec, err := api.SpecWithOauth2("Oauth2IdOrNameYouSet",
+	spec, err := api.SpecWithOauth2("Oauth2IdOrName",
 		rest.Oauth2CodeFlow{
 			AuthorizationURL: "http://10.45.8.189:8080/oauth/v2/authorize",
 			RefreshURL:       "http://localhost:8080/swagger-ui/",

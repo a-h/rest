@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/a-h/rest/enums"
-	"github.com/a-h/rest/getcomments/parser"
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/the-pawn-2017/rest/enums"
+	"github.com/the-pawn-2017/rest/getcomments/parser"
 	"golang.org/x/exp/constraints"
 )
 

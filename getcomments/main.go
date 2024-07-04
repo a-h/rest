@@ -7,10 +7,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/a-h/rest/getcomments/parser"
+	"github.com/the-pawn-2017/rest/getcomments/parser"
 )
 
-var flagPackage = flag.String("package", "", "The package to retrieve comments from, e.g. github.com/a-h/rest/getcomments/example")
+var flagPackage = flag.String("package", "", "The package to retrieve comments from, e.g. github.com/the-pawn-2017/rest/getcomments/example")
 
 func main() {
 	flag.Parse()
