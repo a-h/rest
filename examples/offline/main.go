@@ -7,9 +7,10 @@ import (
 	"os"
 
 	"github.com/a-h/respond"
+	"github.com/getkin/kin-openapi/openapi3"
+
 	"github.com/a-h/rest"
 	"github.com/a-h/rest/examples/offline/models"
-	"github.com/getkin/kin-openapi/openapi3"
 )
 
 func main() {

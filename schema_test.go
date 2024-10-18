@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	_ "embed"
-
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/go-cmp/cmp"
 	"gopkg.in/yaml.v2"

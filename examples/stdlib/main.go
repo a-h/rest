@@ -6,11 +6,12 @@ import (
 	"net/http"
 
 	"github.com/a-h/respond"
+	"github.com/getkin/kin-openapi/openapi3"
+
 	"github.com/a-h/rest"
 	"github.com/a-h/rest/examples/stdlib/handlers/topic/post"
 	"github.com/a-h/rest/examples/stdlib/handlers/topics/get"
 	"github.com/a-h/rest/swaggerui"
-	"github.com/getkin/kin-openapi/openapi3"
 )
 
 func main() {

@@ -3,14 +3,17 @@ package rest
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
+	"sync"
+
+	"github.com/getkin/kin-openapi/openapi3"
+	"golang.org/x/exp/constraints"
 
 	"github.com/a-h/rest/enums"
 	"github.com/a-h/rest/getcomments/parser"
-	"github.com/getkin/kin-openapi/openapi3"
-	"golang.org/x/exp/constraints"
 )
 
 func newSpec(name string) *openapi3.T {
@@ -61,6 +64,9 @@ func newPrimitiveSchema(paramType PrimitiveType) *openapi3.Schema {
 
 func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 	spec = newSpec(api.Name)
+	if api.Version != "" {
+		spec.Info.Version = api.Version
+	}
 	// Add all the routes.
 	for pattern, methodToRoute := range api.Routes {
 		path := &openapi3.PathItem{}
@@ -106,33 +112,39 @@ func (api *API) createOpenAPI() (spec *openapi3.T, err error) {
 			}
 
 			// Handle request types.
-			if route.Models.Request.Type != nil {
-				name, schema, err := api.RegisterModel(route.Models.Request)
+			if route.Models.Request.Content.Type != nil {
+				name, schema, err := api.RegisterModel(route.Models.Request.Content)
 				if err != nil {
 					return spec, err
 				}
 				op.RequestBody = &openapi3.RequestBodyRef{
-					Value: openapi3.NewRequestBody().WithContent(map[string]*openapi3.MediaType{
-						"application/json": {
-							Schema: getSchemaReferenceOrValue(name, schema),
-						},
-					}),
+					Value: openapi3.NewRequestBody().
+						WithContent(map[string]*openapi3.MediaType{
+							"application/json": {
+								Schema: getSchemaReferenceOrValue(name, schema),
+							},
+						}).
+						WithDescription(route.Models.Request.Description),
 				}
 			}
 
 			// Handle response types.
-			for status, model := range route.Models.Responses {
-				name, schema, err := api.RegisterModel(model)
-				if err != nil {
-					return spec, err
-				}
+			for status, response := range route.Models.Responses {
 				resp := openapi3.NewResponse().
-					WithDescription("").
-					WithContent(map[string]*openapi3.MediaType{
+					WithDescription(response.Description)
+
+				if response.Content.Type != nil {
+					name, schema, err := api.RegisterModel(response.Content)
+					if err != nil {
+						return spec, err
+					}
+					resp.WithContent(map[string]*openapi3.MediaType{
 						"application/json": {
 							Schema: getSchemaReferenceOrValue(name, schema),
 						},
 					})
+				}
+
 				op.AddResponse(status, resp)
 			}
 
@@ -287,7 +299,7 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 		if err != nil {
 			return name, schema, fmt.Errorf("error getting schema of slice element %v: %w", t.Elem(), err)
 		}
-		schema = openapi3.NewArraySchema().WithNullable() // Arrays are always nilable in Go.
+		schema = openapi3.NewArraySchema().WithNullable() // Arrays are always nullable in Go.
 		schema.Items = getSchemaReferenceOrValue(elementName, elementSchema)
 	case reflect.String:
 		schema = openapi3.NewStringSchema()
@@ -326,9 +338,13 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 			// Get JSON fieldName.
 			jsonTags := strings.Split(f.Tag.Get("json"), ",")
 			fieldName := jsonTags[0]
+			if fieldName == "-" {
+				continue
+			}
 			if fieldName == "" {
 				fieldName = f.Name
 			}
+
 			// If the model doesn't exist.
 			_, alreadyExists := api.models[api.getModelName(f.Type)]
 			fieldSchemaName, fieldSchema, err := api.RegisterModel(modelFromType(f.Type))
@@ -348,16 +364,49 @@ func (api *API) RegisterModel(model Model, opts ...ModelOpts) (name string, sche
 				schema.Required = append(schema.Required, fieldSchema.Required...)
 				continue
 			}
+
+			// get the validate tag
+			// Get JSON fieldName.
+			validateTags := strings.Split(f.Tag.Get("validate"), ",")
+			validateRequired := !slices.Contains(validateTags, "omitempty")
+			var enumParams []string
+			if IsEnum(f) {
+				enumParams = parseOneOfParam(f)
+			}
+
+			var dateFormat string
+			if IsDateTime(f) {
+				dateFormat = parseDateTimeParam(f)
+			}
+
 			ref := getSchemaReferenceOrValue(fieldSchemaName, fieldSchema)
 			if ref.Value != nil {
 				if ref.Value.Description, ref.Value.Deprecated, err = api.getTypeFieldComment(t.PkgPath(), t.Name(), f.Name); err != nil {
 					return name, schema, fmt.Errorf("failed to get comments for field %q in type %q: %w", fieldName, name, err)
 				}
+				if len(enumParams) > 0 {
+					ref.Value = ref.Value.WithEnum(enumParams)
+				}
+
+				if dateFormat != "" {
+					ref.Value = ref.Value.WithFormat(dateFormat)
+					ref.Value.Example = dateFormat
+				}
+
+			} else {
+				if len(enumParams) > 0 {
+					schema = schema.WithEnum(enumParams)
+				}
+				if dateFormat != "" {
+					ref.Value = ref.Value.WithFormat(dateFormat)
+					ref.Value.Example = dateFormat
+				}
 			}
+
 			schema.Properties[fieldName] = ref
-			isPtr := f.Type.Kind() == reflect.Pointer
+			isPtr := f.Type.Kind() == reflect.Pointer || f.Type.Kind() == reflect.Array
 			hasOmitEmptySet := slices.Contains(jsonTags, "omitempty")
-			if isFieldRequired(isPtr, hasOmitEmptySet) {
+			if isFieldRequired(isPtr, hasOmitEmptySet) && validateRequired {
 				schema.Required = append(schema.Required, fieldName)
 			}
 		}
@@ -439,13 +488,108 @@ var normalizer = strings.NewReplacer("/", "_",
 func (api *API) normalizeTypeName(pkgPath, name string) string {
 	var omitPackage bool
 	for _, pkg := range api.StripPkgPaths {
+		if strings.Contains(pkgPath, "query") {
+			fmt.Printf("PACKAGE %v :::: %v ::: %v \n", pkgPath, pkg, name)
+		}
+
 		if strings.HasPrefix(pkgPath, pkg) {
 			omitPackage = true
 			break
+		}
+
+		if strings.Contains(name, pkg) {
+			name = strings.Replace(name, pkg+".", "", 1)
 		}
 	}
 	if omitPackage || pkgPath == "" {
 		return normalizer.Replace(name)
 	}
 	return normalizer.Replace(pkgPath + "/" + name)
+}
+
+const (
+	splitParamsRegexString = `'[^']*'|\S+`
+)
+
+var (
+	oneofValsCache       = map[string][]string{}
+	oneofValsCacheRWLock = sync.RWMutex{}
+	splitParamsRegex     = lazyRegexCompile(splitParamsRegexString)
+)
+
+func lazyRegexCompile(str string) func() *regexp.Regexp {
+	var regex *regexp.Regexp
+	var once sync.Once
+	return func() *regexp.Regexp {
+		once.Do(func() {
+			regex = regexp.MustCompile(str)
+		})
+		return regex
+	}
+}
+
+func IsEnum(f reflect.StructField) bool {
+	return strings.Contains(f.Tag.Get("validate"), "oneof=")
+}
+
+func parseOneOfParam(f reflect.StructField) []string {
+
+	validateTags := strings.Split(f.Tag.Get("validate"), ",")
+
+	var enumTag string
+	for _, validation := range validateTags {
+		if strings.Contains(validation, "oneof=") {
+			enumTag = validation
+		}
+	}
+	if enumTag == "" {
+		return []string{}
+	}
+	enumTag = strings.Replace(enumTag, "oneof=", "", 1)
+	oneofValsCacheRWLock.RLock()
+	vals, ok := oneofValsCache[enumTag]
+	oneofValsCacheRWLock.RUnlock()
+	if !ok {
+		oneofValsCacheRWLock.Lock()
+		vals = splitParamsRegex().FindAllString(enumTag, -1)
+		for i := 0; i < len(vals); i++ {
+			vals[i] = strings.Replace(vals[i], "'", "", -1)
+		}
+		oneofValsCache[enumTag] = vals
+		oneofValsCacheRWLock.Unlock()
+	}
+	return vals
+}
+
+func IsDateTime(f reflect.StructField) bool {
+	return strings.Contains(f.Tag.Get("validate"), "datetime=")
+}
+
+func parseDateTimeParam(f reflect.StructField) string {
+	validateTags := strings.Split(f.Tag.Get("validate"), ",")
+
+	var dateTimeTag string
+	for _, validation := range validateTags {
+		if strings.Contains(validation, "datetime=") {
+			dateTimeTag = validation
+		}
+	}
+
+	return strings.Replace(dateTimeTag, "datetime=", "", 1)
+}
+
+func parseSetValues(f reflect.StructField) []string {
+	validateTags := strings.Split(f.Tag.Get("validate"), ",")
+
+	var diveTag string
+	for _, validation := range validateTags {
+		if validation == "dive" {
+			diveTag = validation
+		}
+	}
+	if diveTag == "" {
+		return []string{}
+	}
+
+	return parseOneOfParam(f)
 }
