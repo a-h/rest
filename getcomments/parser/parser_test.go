@@ -2,7 +2,10 @@ package parser_test
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/a-h/rest/getcomments/parser"
 	"github.com/a-h/rest/getcomments/parser/tests/anonymous"
@@ -14,7 +17,6 @@ import (
 	"github.com/a-h/rest/getcomments/parser/tests/pointers"
 	"github.com/a-h/rest/getcomments/parser/tests/privatetypes"
 	"github.com/a-h/rest/getcomments/parser/tests/publictypes"
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestGet(t *testing.T) {
@@ -88,5 +90,13 @@ func TestGet(t *testing.T) {
 				t.Error(diff)
 			}
 		})
+	}
+}
+
+func TestGet_WithoutToolchain(t *testing.T) {
+	t.Setenv("PATH", "")
+	_, err := parser.Get("github.com/a-h/rest/getcomments/parser/tests/docs")
+	if !errors.Is(err, parser.ErrGoCommandRequired) {
+		t.Fatalf("expected ErrGoCommandRequired, got %v", err)
 	}
 }

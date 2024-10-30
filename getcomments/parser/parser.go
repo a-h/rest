@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/types"
@@ -9,6 +10,8 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+var ErrGoCommandRequired = errors.New("go command required, not found")
+
 func Get(packageName string) (m map[string]string, err error) {
 	config := &packages.Config{
 		Mode:  packages.NeedTypes | packages.NeedTypesInfo | packages.NeedSyntax,
@@ -16,6 +19,9 @@ func Get(packageName string) (m map[string]string, err error) {
 	}
 	pkgs, err := packages.Load(config, packageName)
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "err: go command required, not found: ") {
+			err = ErrGoCommandRequired
+		}
 		err = fmt.Errorf("error loading package %s: %w", packageName, err)
 		return
 	}

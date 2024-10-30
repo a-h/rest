@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -394,6 +395,9 @@ func (api *API) getCommentsForPackage(pkg string) (pkgComments map[string]string
 		return pkgComments, nil
 	}
 	pkgComments, err = parser.Get(pkg)
+	if errors.Is(err, parser.ErrGoCommandRequired) {
+		err = nil
+	}
 	if err != nil {
 		return
 	}
