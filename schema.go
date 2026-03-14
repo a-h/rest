@@ -444,8 +444,18 @@ func (api *API) normalizeTypeName(pkgPath, name string) string {
 			break
 		}
 	}
+
+	var normalized string
+
 	if omitPackage || pkgPath == "" {
-		return normalizer.Replace(name)
+		normalized = normalizer.Replace(name)
+	} else {
+		normalized = normalizer.Replace(pkgPath + "/" + name)
 	}
-	return normalizer.Replace(pkgPath + "/" + name)
+
+	if api.ApplyPostNormalizeTransform != nil {
+		normalized = api.ApplyPostNormalizeTransform(normalized)
+	}
+
+	return normalized
 }
